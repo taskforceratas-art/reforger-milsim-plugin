@@ -494,7 +494,7 @@ class RMM_Frontend_ORBAT {
 
 			ob_start();
 			?>
-			<a href="<?php the_permalink(); ?>" class="rmm-grid-card" data-author="<?php echo esc_attr($author); ?>" data-ace="<?php echo $has_ace ? '1' : '0'; ?>" data-rhs="<?php echo $has_rhs ? '1' : '0'; ?>">
+			<a href="<?php the_permalink(); ?>" class="rmm-grid-card" data-author="<?php echo esc_attr($author); ?>" data-ace="<?php echo $has_ace ? '1' : '0'; ?>" data-rhs="<?php echo $has_rhs ? '1' : '0'; ?>" data-slots="<?php echo $slots_count; ?>" data-addons="<?php echo $addons_count; ?>">
 				<div class="rmm-grid-thumb" style="background-image: url('<?php echo esc_url($thumb_url); ?>');">
 					<div class="rmm-grid-thumb-overlay">
 						<span class="rmm-grid-stat">📦 <?php echo $addons_count; ?> Addons</span>
@@ -528,6 +528,14 @@ class RMM_Frontend_ORBAT {
 						<option value="<?php echo esc_attr($ua); ?>"><?php echo esc_html($ua); ?></option>
 					<?php endforeach; ?>
 				</select>
+			</div>
+			<div class="rmm-filter-group">
+				<label for="rmm-filter-min-slots">Slots Mín.:</label>
+				<input type="number" id="rmm-filter-min-slots" min="0" placeholder="0" style="width: 60px; background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 5px; border-radius: 3px;">
+			</div>
+			<div class="rmm-filter-group">
+				<label for="rmm-filter-max-addons">Addons Máx.:</label>
+				<input type="number" id="rmm-filter-max-addons" min="0" placeholder="Máx" style="width: 60px; background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 5px; border-radius: 3px;">
 			</div>
 			<div class="rmm-filter-group">
 				<button class="rmm-filter-btn" data-filter="ace">ACE</button>
@@ -616,6 +624,7 @@ class RMM_Frontend_ORBAT {
 			/* Estilos de Filtros */
 			.rmm-grid-filters {
 				display: flex;
+				flex-wrap: wrap;
 				gap: 20px;
 				align-items: center;
 				margin-bottom: 20px;
@@ -658,10 +667,15 @@ class RMM_Frontend_ORBAT {
 			jQuery(document).ready(function($) {
 				const cards = $('.rmm-grid-card');
 				const authorSelect = $('#rmm-filter-author');
+				const minSlotsInput = $('#rmm-filter-min-slots');
+				const maxAddonsInput = $('#rmm-filter-max-addons');
 				const filterBtns = $('.rmm-filter-btn');
 
 				function applyFilters() {
 					const selectedAuthor = authorSelect.val();
+					const minSlots = parseInt(minSlotsInput.val()) || 0;
+					const maxAddons = parseInt(maxAddonsInput.val()) || Infinity;
+					
 					const activeFilters = [];
 					filterBtns.filter('.active').each(function() {
 						activeFilters.push($(this).data('filter'));
@@ -672,12 +686,16 @@ class RMM_Frontend_ORBAT {
 						const author = card.data('author');
 						const hasAce = card.data('ace') == '1';
 						const hasRhs = card.data('rhs') == '1';
+						const slots = parseInt(card.data('slots')) || 0;
+						const addons = parseInt(card.data('addons')) || 0;
 
 						let show = true;
 
 						if (selectedAuthor && author !== selectedAuthor) show = false;
 						if (activeFilters.includes('ace') && !hasAce) show = false;
 						if (activeFilters.includes('rhs') && !hasRhs) show = false;
+						if (slots < minSlots) show = false;
+						if (addons > maxAddons) show = false;
 
 						if (show) {
 							card.fadeIn(200);
@@ -688,6 +706,8 @@ class RMM_Frontend_ORBAT {
 				}
 
 				authorSelect.on('change', applyFilters);
+				minSlotsInput.on('input', applyFilters);
+				maxAddonsInput.on('input', applyFilters);
 				filterBtns.on('click', function() {
 					$(this).toggleClass('active');
 					applyFilters();
