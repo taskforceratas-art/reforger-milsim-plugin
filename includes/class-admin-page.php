@@ -107,6 +107,12 @@ class RMM_Admin_Page {
 				'context'     => 'Misiones, Eventos',
 				'params'      => '—',
 			),
+			array(
+				'shortcode'   => '[coordenadas_militar]',
+				'description' => 'Muestra coordenadas militares geolocalizadas del visitante con estilo táctico tipo terminal.',
+				'context'     => 'Global (cualquier página)',
+				'params'      => 'color="#849b4c" size="14px" layout="vertical|horizontal" ip="0|1" intel="0|1" location="0|1"',
+			),
 		);
 	}
 

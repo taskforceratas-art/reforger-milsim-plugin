@@ -29,6 +29,7 @@ $rmm_includes = array(
 	'class-frontend-orbat.php',
 	'class-calendar-handler.php',
 	'class-admin-page.php',
+	'class-intel-handler.php',
 );
 
 foreach ( $rmm_includes as $file ) {
@@ -76,6 +77,7 @@ class ReforgerMilsimManagement {
 		new RMM_Frontend_ORBAT();
 		new RMM_Calendar_Handler();
 		new RMM_Admin_Page();
+		new RMM_Intel_Handler();
 		// Global Frontend Filters
 		add_filter( 'the_content', array( $this, 'prepend_mission_event_header' ) );
 		add_filter( 'the_title', array( $this, 'append_time_to_title' ), 10, 2 );
