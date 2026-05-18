@@ -439,8 +439,14 @@ class RMM_Frontend_ORBAT {
 	}
 
 	public function render_missions_grid_shortcode( $atts ) {
-		return '<strong>[rmm_missions_grid] - Modo de prueba activo</strong>';
-	}
+		// Desactivar renderizado en el editor de Elementor para evitar conflictos
+		if ( class_exists( '\Elementor\Plugin' ) && \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
+			return '<div style="padding:20px; background:#1a1a1a; border:1px solid #333; color:#849b4c; text-align:center; font-family:monospace;">[rmm_missions_grid] - Vista previa desactivada en el editor para evitar conflictos.</div>';
+		}
+
+		$a = shortcode_atts( array(
+			'posts_per_page' => 8,
+		), $atts );
 
 		$query = new WP_Query( array(
 			'post_type' => 'misiones',
