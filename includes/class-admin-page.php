@@ -113,6 +113,12 @@ class RMM_Admin_Page {
 				'context'     => 'Global (cualquier página)',
 				'params'      => 'color="#849b4c" size="14px" layout="vertical|horizontal" ip="0|1" intel="0|1" location="0|1"',
 			),
+			array(
+				'shortcode'   => '[rmm_missions_grid]',
+				'description' => 'Muestra una rejilla (grid) de misiones con estilo táctico, imágenes, autor y badges de addons (ACE/RHS).',
+				'context'     => 'Global (cualquier página)',
+				'params'      => 'posts_per_page="8"',
+			),
 		);
 	}
 
