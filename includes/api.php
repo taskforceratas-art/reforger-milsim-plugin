@@ -154,6 +154,13 @@ function reforger_scrape_details_and_deps($uuid, $debug = false) {
         $author = preg_replace('/^by\s+/i', '', $author);
     }
 
+    // === IMAGEN ===
+    $image = '';
+    $img_nodes = $xp->query("//figure[contains(@class, 'aspect-w-16')]/img");
+    if ($img_nodes && $img_nodes->length > 0) {
+        $image = $img_nodes->item(0)->getAttribute('src');
+    }
+
     // === DEPENDENCIAS ===
     $deps = [];
     foreach ($xp->query("//section//*[contains(@class,'py-8')]//a[@href] | //section//a[@href]") as $a) {
@@ -203,6 +210,7 @@ function reforger_scrape_details_and_deps($uuid, $debug = false) {
             'id' => strtoupper($uuid),
             'title' => $title ?: 'Sin título',
             'author' => $author ?: '',
+            'image' => $image ?: '',
             'url' => $info['url'] ?? $url,
             'type' => 'reforger'
         ],
