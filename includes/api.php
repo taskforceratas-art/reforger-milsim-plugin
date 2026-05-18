@@ -148,7 +148,7 @@ function reforger_scrape_details_and_deps($uuid, $debug = false) {
 
     // === AUTOR ===
     $author = '';
-    $author_nodes = $xp->query("//section//*[starts-with(normalize-space(text()), 'by ')]");
+    $author_nodes = $xp->query("//section//*[starts-with(normalize-space(.), 'by ')]");
     if ($author_nodes && $author_nodes->length > 0) {
         $author = trim($author_nodes->item(0)->textContent);
         $author = preg_replace('/^by\s+/i', '', $author);
