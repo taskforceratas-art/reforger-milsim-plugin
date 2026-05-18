@@ -59,8 +59,9 @@ class RMM_Calendar_Handler {
 			$fin    = get_post_meta( $post->ID, 'fecha_fin', true );
 			$estado = get_post_meta( $post->ID, 'estado', true );
 
-			$start_formatted = !empty($inicio) ? date('c', strtotime($inicio)) : null;
-			$end_formatted   = !empty($fin) ? date('c', strtotime($fin)) : null;
+			// Usar wp_date para aplicar la zona horaria de WordPress correcta
+			$start_formatted = !empty($inicio) ? wp_date('c', strtotime($inicio)) : null;
+			$end_formatted   = !empty($fin) ? wp_date('c', strtotime($fin)) : null;
 
 			// Skip events without start date
 			if ( !$start_formatted ) continue;
@@ -85,71 +86,135 @@ class RMM_Calendar_Handler {
 	 * FRONTEND: Shortcode [clan_calendario]
 	 */
 	public function render_calendar_shortcode() {
-		// Encolar FullCalendar V6 desde CDN
+		// Encolar FullCalendar V6 y el idioma español desde CDN
 		wp_enqueue_script( 'fullcalendar-js', 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js', array(), '6.1.10', true );
+		wp_enqueue_script( 'fullcalendar-es-js', 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales/es.global.min.js', array('fullcalendar-js'), '6.1.10', true );
 		
 		ob_start();
 		?>
 		<div id="rmm-calendar-container" class="rmm-dark-theme">
-			<div id="rmm-global-calendar" class="bg-gray-900 p-6 rounded-xl shadow-2xl border border-gray-800"></div>
+			<div id="rmm-global-calendar"></div>
 		</div>
 
 		<style>
 			/* Sobrescribir estilos de FullCalendar para modo oscuro táctico */
 			:root {
-				--fc-border-color: #1f2937; /* gray-800 */
+				--fc-border-color: #333;
 				--fc-daygrid-event-dot-width: 8px;
+			}
+			#rmm-calendar-container {
+				background: #1a1a1a;
+				padding: 20px;
+				border-radius: 4px;
+				border: 1px solid #333;
+				margin-bottom: 30px;
 			}
 			#rmm-global-calendar {
 				--fc-page-bg-color: transparent;
-				--fc-list-event-hover-bg-color: #111827;
+				--fc-list-event-hover-bg-color: #2a2a2a;
 				color: #e5e7eb;
 				font-family: 'Inter', sans-serif;
 			}
-			.fc .fc-toolbar-title { font-size: 1.25rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #60a5fa; }
-			.fc .fc-button-primary { background-color: #1e3a8a !important; border-color: #1e40af !important; text-transform: uppercase; font-size: 0.75rem; font-weight: bold; }
-			.fc .fc-button-primary:hover { background-color: #1d4ed8 !important; }
-			.fc .fc-col-header-cell { background-color: #111827; padding: 10px 0; font-size: 0.75rem; text-transform: uppercase; color: #9ca3af; }
-			.fc .fc-daygrid-day-number { padding: 8px; font-size: 0.85rem; color: #9ca3af; }
-			.fc .fc-day-today { background-color: rgba(30, 58, 138, 0.2) !important; }
+			.fc .fc-toolbar-title { 
+				font-size: 1.25rem; 
+				font-weight: 800; 
+				text-transform: uppercase; 
+				letter-spacing: 0.05em; 
+				color: #849b4c; /* Verde táctico */
+			}
+			.fc .fc-button-primary { 
+				background-color: #2a2a2a !important; 
+				border-color: #444 !important; 
+				text-transform: uppercase; 
+				font-size: 0.75rem; 
+				font-weight: bold; 
+				color: #aaa !important;
+			}
+			.fc .fc-button-primary:hover { 
+				background-color: #849b4c !important; 
+				border-color: #849b4c !important;
+				color: #fff !important;
+			}
+			.fc .fc-button-primary:disabled {
+				background-color: #111 !important;
+				border-color: #222 !important;
+				color: #444 !important;
+			}
+			.fc .fc-col-header-cell { 
+				background-color: #111; 
+				padding: 10px 0; 
+				font-size: 0.75rem; 
+				text-transform: uppercase; 
+				color: #888; 
+			}
+			.fc .fc-daygrid-day-number { 
+				padding: 8px; 
+				font-size: 0.85rem; 
+				color: #aaa; 
+			}
+			.fc .fc-day-today { 
+				background-color: rgba(132, 155, 76, 0.15) !important; /* Fondo verde táctico suave */
+			}
 			
 			/* Colores por estado de misión */
-			.rmm-event-status-abierta { background-color: #059669 !important; border-color: #047857 !important; }
-			.rmm-event-status-en_curso { background-color: #d97706 !important; border-color: #b45309 !important; }
-			.rmm-event-status-debriefing { background-color: #7c3aed !important; border-color: #6d28d9 !important; }
-			.rmm-event-status-finalizada { background-color: #4b5563 !important; border-color: #374151 !important; opacity: 0.7; }
+			.rmm-event-status-abierta { background-color: #849b4c !important; border-color: #849b4c !important; color: #fff !important; }
+			.rmm-event-status-en_curso { background-color: #d97706 !important; border-color: #d97706 !important; color: #fff !important; }
+			.rmm-event-status-debriefing { background-color: #7c3aed !important; border-color: #7c3aed !important; color: #fff !important; }
+			.rmm-event-status-finalizada { background-color: #444 !important; border-color: #444 !important; color: #aaa !important; opacity: 0.7; }
 			
-			.fc-event { padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+			.fc-event { padding: 4px 6px; border-radius: 3px; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+
+			/* Soporte para móviles */
+			@media (max-width: 768px) {
+				#rmm-calendar-container { padding: 10px; }
+				.fc .fc-toolbar { flex-direction: column; gap: 10px; }
+				.fc .fc-toolbar-title { font-size: 1rem; }
+				/* Permitir scroll horizontal en la vista de mes si no cabe */
+				.fc-dayGridMonth-view {
+					overflow-x: auto;
+				}
+				.fc-dayGridMonth-view .fc-scrollgrid {
+					min-width: 600px;
+				}
+			}
 		</style>
 
 		<script>
-		document.addEventListener('DOMContentLoaded', function() {
-			var calendarEl = document.getElementById('rmm-global-calendar');
-			if (!calendarEl) return;
+			jQuery(document).ready(function($) {
+				var calendarEl = document.getElementById('rmm-global-calendar');
+				if (!calendarEl) return;
 
-			var calendar = new FullCalendar.Calendar(calendarEl, {
-				initialView: 'dayGridMonth',
-				locale: 'es',
-				firstDay: 1, // Lunes
-				headerToolbar: {
-					left: 'prev,next today',
-					center: 'title',
-					right: 'dayGridMonth,listWeek'
-				},
-				events: '<?php echo esc_url( get_rest_url( null, "clan/v1/calendario" ) ); ?>',
-				eventClick: function(info) {
-					if (info.event.url) {
-						window.open(info.event.url, "_self");
-						info.jsEvent.preventDefault();
+				var calendar = new FullCalendar.Calendar(calendarEl, {
+					initialView: window.innerWidth < 768 ? 'listWeek' : 'dayGridMonth',
+					locale: 'es',
+					firstDay: 1, // Lunes
+					headerToolbar: {
+						left: 'prev,next today',
+						center: 'title',
+						right: 'dayGridMonth,listWeek'
+					},
+					events: '<?php echo esc_url( get_rest_url( null, "clan/v1/calendario" ) ); ?>',
+					eventClick: function(info) {
+						if (info.event.url) {
+							window.open(info.event.url, "_self");
+							info.jsEvent.preventDefault();
+						}
+					},
+					eventDidMount: function(info) {
+						info.el.setAttribute('title', info.event.title + ' [' + info.event.extendedProps.estado.toUpperCase() + ']');
 					}
-				},
-				// Tooltip básico con el estado
-				eventDidMount: function(info) {
-					info.el.setAttribute('title', info.event.title + ' [' + info.event.extendedProps.estado.toUpperCase() + ']');
-				}
+				});
+				calendar.render();
+
+				// Re-renderizar al cambiar el tamaño de la ventana para adaptar la vista
+				$(window).on('resize', function() {
+					if (window.innerWidth < 768 && calendar.view.type !== 'listWeek') {
+						calendar.changeView('listWeek');
+					} else if (window.innerWidth >= 768 && calendar.view.type !== 'dayGridMonth') {
+						calendar.changeView('dayGridMonth');
+					}
+				});
 			});
-			calendar.render();
-		});
 		</script>
 		<?php
 		return ob_get_clean();
