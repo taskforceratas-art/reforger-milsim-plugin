@@ -458,55 +458,85 @@ class RMM_Frontend_ORBAT {
 			return '<p>No hay misiones publicadas.</p>';
 		}
 
-		ob_start();
-		?>
-		<div class="rmm-missions-grid">
-			<?php while ( $query->have_posts() ) : $query->the_post(); 
-				$post_id = get_the_ID();
-				$author = get_post_meta( $post_id, 'rmm_author', true ) ?: 'Autor desconocido';
-				$addons = get_post_meta( $post_id, 'addons_requeridos', true );
-				$addons_count = is_array($addons) ? count($addons) : 0;
-				
-				// Check for ACE/RHS
-				$has_ace = false;
-				$has_rhs = false;
-				if ( is_array($addons) ) {
-					foreach ( $addons as $addon ) {
-						if ( stripos( $addon, 'ACE' ) !== false ) $has_ace = true;
-						if ( stripos( $addon, 'RHS' ) !== false ) $has_rhs = true;
+		$authors = array();
+		$cards_html = '';
+
+		while ( $query->have_posts() ) : $query->the_post(); 
+			$post_id = get_the_ID();
+			$author = get_post_meta( $post_id, 'rmm_author', true ) ?: 'Autor desconocido';
+			$authors[] = $author;
+			
+			$addons = get_post_meta( $post_id, 'addons_requeridos', true );
+			$addons_count = is_array($addons) ? count($addons) : 0;
+			
+			// Check for ACE/RHS
+			$has_ace = false;
+			$has_rhs = false;
+			if ( is_array($addons) ) {
+				foreach ( $addons as $addon ) {
+					if ( stripos( $addon, 'ACE' ) !== false ) $has_ace = true;
+					if ( stripos( $addon, 'RHS' ) !== false ) $has_rhs = true;
+				}
+			}
+
+			// Count slots in ORBAT
+			$orbat = get_post_meta( $post_id, 'orbat_maestro', true );
+			$slots_count = 0;
+			if ( is_array($orbat) ) {
+				foreach ( $orbat as $squad ) {
+					if ( isset($squad['slots']) ) {
+						$slots_count += count($squad['slots']);
 					}
 				}
+			}
 
-				// Count slots in ORBAT
-				$orbat = get_post_meta( $post_id, 'orbat_maestro', true );
-				$slots_count = 0;
-				if ( is_array($orbat) ) {
-					foreach ( $orbat as $squad ) {
-						if ( isset($squad['slots']) ) {
-							$slots_count += count($squad['slots']);
-						}
-					}
-				}
+			$thumb_url = get_the_post_thumbnail_url( $post_id, 'large' ) ?: 'https://via.placeholder.com/800x450?text=Sin+Imagen';
 
-				$thumb_url = get_the_post_thumbnail_url( $post_id, 'large' ) ?: 'https://via.placeholder.com/800x450?text=Sin+Imagen';
+			ob_start();
 			?>
-				<a href="<?php the_permalink(); ?>" class="rmm-grid-card">
-					<div class="rmm-grid-thumb" style="background-image: url('<?php echo esc_url($thumb_url); ?>');">
-						<div class="rmm-grid-thumb-overlay">
-							<span class="rmm-grid-stat">📦 <?php echo $addons_count; ?> Addons</span>
-							<div class="rmm-grid-badges">
-								<?php if ($has_ace) : ?><span class="rmm-badge rmm-badge-ace">ACE</span><?php endif; ?>
-								<?php if ($has_rhs) : ?><span class="rmm-badge rmm-badge-rhs">RHS</span><?php endif; ?>
-								<?php if ($slots_count > 0) : ?><span class="rmm-badge rmm-badge-slots">👥 <?php echo $slots_count; ?></span><?php endif; ?>
-							</div>
+			<a href="<?php the_permalink(); ?>" class="rmm-grid-card" data-author="<?php echo esc_attr($author); ?>" data-ace="<?php echo $has_ace ? '1' : '0'; ?>" data-rhs="<?php echo $has_rhs ? '1' : '0'; ?>">
+				<div class="rmm-grid-thumb" style="background-image: url('<?php echo esc_url($thumb_url); ?>');">
+					<div class="rmm-grid-thumb-overlay">
+						<span class="rmm-grid-stat">📦 <?php echo $addons_count; ?> Addons</span>
+						<div class="rmm-grid-badges">
+							<?php if ($has_ace) : ?><span class="rmm-badge rmm-badge-ace">ACE</span><?php endif; ?>
+							<?php if ($has_rhs) : ?><span class="rmm-badge rmm-badge-rhs">RHS</span><?php endif; ?>
+							<?php if ($slots_count > 0) : ?><span class="rmm-badge rmm-badge-slots">👥 <?php echo $slots_count; ?></span><?php endif; ?>
 						</div>
 					</div>
-					<div class="rmm-grid-info">
-						<h3 class="rmm-grid-title"><?php the_title(); ?></h3>
-						<span class="rmm-grid-author">by <?php echo esc_html($author); ?></span>
-					</div>
-				</a>
-			<?php endwhile; wp_reset_postdata(); ?>
+				</div>
+				<div class="rmm-grid-info">
+					<h3 class="rmm-grid-title"><?php the_title(); ?></h3>
+					<span class="rmm-grid-author">by <?php echo esc_html($author); ?></span>
+				</div>
+			</a>
+			<?php
+			$cards_html .= ob_get_clean();
+		endwhile; 
+		wp_reset_postdata();
+
+		$unique_authors = array_unique($authors);
+
+		ob_start();
+		?>
+		<div class="rmm-grid-filters">
+			<div class="rmm-filter-group">
+				<label for="rmm-filter-author">Autor:</label>
+				<select id="rmm-filter-author">
+					<option value="">Todos</option>
+					<?php foreach ($unique_authors as $ua) : ?>
+						<option value="<?php echo esc_attr($ua); ?>"><?php echo esc_html($ua); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+			<div class="rmm-filter-group">
+				<button class="rmm-filter-btn" data-filter="ace">ACE</button>
+				<button class="rmm-filter-btn" data-filter="rhs">RHS</button>
+			</div>
+		</div>
+
+		<div class="rmm-missions-grid">
+			<?php echo $cards_html; ?>
 		</div>
 
 		<style>
@@ -583,7 +613,87 @@ class RMM_Frontend_ORBAT {
 				font-size: 12px;
 				color: #888;
 			}
+			/* Estilos de Filtros */
+			.rmm-grid-filters {
+				display: flex;
+				gap: 20px;
+				align-items: center;
+				margin-bottom: 20px;
+				background: #1a1a1a;
+				padding: 15px;
+				border: 1px solid #333;
+				border-radius: 4px;
+			}
+			.rmm-filter-group {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				color: #888;
+				font-size: 14px;
+			}
+			.rmm-filter-group select {
+				background: #2a2a2a;
+				color: #fff;
+				border: 1px solid #444;
+				padding: 5px 10px;
+				border-radius: 3px;
+			}
+			.rmm-filter-btn {
+				background: #2a2a2a;
+				color: #888;
+				border: 1px solid #444;
+				padding: 5px 15px;
+				border-radius: 3px;
+				cursor: pointer;
+				transition: all 0.2s;
+			}
+			.rmm-filter-btn.active {
+				background: #849b4c;
+				color: #fff;
+				border-color: #849b4c;
+			}
 		</style>
+
+		<script>
+			jQuery(document).ready(function($) {
+				const cards = $('.rmm-grid-card');
+				const authorSelect = $('#rmm-filter-author');
+				const filterBtns = $('.rmm-filter-btn');
+
+				function applyFilters() {
+					const selectedAuthor = authorSelect.val();
+					const activeFilters = [];
+					filterBtns.filter('.active').each(function() {
+						activeFilters.push($(this).data('filter'));
+					});
+
+					cards.each(function() {
+						const card = $(this);
+						const author = card.data('author');
+						const hasAce = card.data('ace') == '1';
+						const hasRhs = card.data('rhs') == '1';
+
+						let show = true;
+
+						if (selectedAuthor && author !== selectedAuthor) show = false;
+						if (activeFilters.includes('ace') && !hasAce) show = false;
+						if (activeFilters.includes('rhs') && !hasRhs) show = false;
+
+						if (show) {
+							card.fadeIn(200);
+						} else {
+							card.fadeOut(200);
+						}
+					});
+				}
+
+				authorSelect.on('change', applyFilters);
+				filterBtns.on('click', function() {
+					$(this).toggleClass('active');
+					applyFilters();
+				});
+			});
+		</script>
 		<?php
 		return ob_get_clean();
 	}
