@@ -59,9 +59,16 @@ class RMM_Calendar_Handler {
 			$fin    = get_post_meta( $post->ID, 'fecha_fin', true );
 			$estado = get_post_meta( $post->ID, 'estado', true );
 
-			// Usar wp_date para aplicar la zona horaria de WordPress correcta
-			$start_formatted = !empty($inicio) ? wp_date('c', strtotime($inicio)) : null;
-			$end_formatted   = !empty($fin) ? wp_date('c', strtotime($fin)) : null;
+			// Usar DateTime con la zona horaria de WordPress para evitar que PHP asuma UTC y mueva las horas
+			$start_formatted = null;
+			if ( !empty($inicio) ) {
+				try {
+					$dt = new DateTime( $inicio, wp_timezone() );
+					$start_formatted = $dt->format('c');
+				} catch (Exception $e) {
+					$start_formatted = null;
+				}
+			}
 
 			// Skip events without start date
 			if ( !$start_formatted ) continue;
@@ -185,13 +192,18 @@ class RMM_Calendar_Handler {
 				if (!calendarEl) return;
 
 				var calendar = new FullCalendar.Calendar(calendarEl, {
-					initialView: window.innerWidth < 768 ? 'listWeek' : 'dayGridMonth',
+					initialView: 'dayGridMonth', // Volvemos a mes por defecto en móvil a petición del usuario
 					locale: 'es',
 					firstDay: 1, // Lunes
 					headerToolbar: {
 						left: 'prev,next today',
 						center: 'title',
 						right: 'dayGridMonth,listWeek'
+					},
+					buttonText: {
+						today: 'Hoy',
+						month: 'Mes',
+						list: 'Lista'
 					},
 					events: '<?php echo esc_url( get_rest_url( null, "clan/v1/calendario" ) ); ?>',
 					eventClick: function(info) {
@@ -205,15 +217,6 @@ class RMM_Calendar_Handler {
 					}
 				});
 				calendar.render();
-
-				// Re-renderizar al cambiar el tamaño de la ventana para adaptar la vista
-				$(window).on('resize', function() {
-					if (window.innerWidth < 768 && calendar.view.type !== 'listWeek') {
-						calendar.changeView('listWeek');
-					} else if (window.innerWidth >= 768 && calendar.view.type !== 'dayGridMonth') {
-						calendar.changeView('dayGridMonth');
-					}
-				});
 			});
 		</script>
 		<?php
