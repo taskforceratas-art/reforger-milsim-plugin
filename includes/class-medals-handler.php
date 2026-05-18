@@ -171,11 +171,13 @@ class RMM_Medals_Handler {
 					$thumb_url = get_the_post_thumbnail_url( $m->ID, 'metopa-militar' );
 					if ( !$thumb_url ) $thumb_url = 'https://via.placeholder.com/120x35?text=Sin+Imagen';
 					?>
-					<img src="<?php echo esc_url($thumb_url); ?>" 
-						 title="<?php echo esc_attr( $m->post_title . ' - ' . $m->motivo ); ?>"
-						 class="w-full h-auto block object-cover"
-						 style="width:120px; height:35px;" 
-					>
+					<a href="<?php echo esc_url( get_permalink( $m->ID ) ); ?>">
+						<img src="<?php echo esc_url($thumb_url); ?>" 
+							 title="<?php echo esc_attr( $m->post_title . ' - ' . $m->motivo ); ?>"
+							 class="w-full h-auto block object-cover"
+							 style="width:120px; height:35px;" 
+						>
+					</a>
 				<?php endforeach; ?>
 			</div>
 		</div>
