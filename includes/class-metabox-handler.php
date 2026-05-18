@@ -71,6 +71,7 @@ class RMM_Metabox_Handler {
 
 		wp_send_json_success( array(
 			'title' => $body['item']['title'] ?? '',
+			'author' => $body['item']['author'] ?? '',
 			'url'   => $body['item']['url'] ?? '',
 			'image' => $body['item']['image'] ?? '',
 			'summary' => $body['item']['summary'] ?? '',
@@ -213,6 +214,7 @@ class RMM_Metabox_Handler {
 					jQuery('#addons_requeridos').val(res.data.dependencies.join("\n"));
 					if(res.data.summary) jQuery('#hidden-summary').val(res.data.summary);
 					if(res.data.description) jQuery('#hidden-description').val(res.data.description);
+					if(res.data.author) jQuery('#rmm_author').val(res.data.author);
 					jQuery('#api-preview').slideDown();
 					
 					// Auto-descargar y setear imagen destacada via AJAX
