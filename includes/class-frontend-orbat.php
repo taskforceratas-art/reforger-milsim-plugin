@@ -218,14 +218,18 @@ class RMM_Frontend_ORBAT {
 	 */
 	private function get_role_icon( $role ) {
 		$icons = array(
-			'Líder de Escuadra' => '⚔️',
-			'Médico'            => '🏥',
-			'Fusilero'          => '🎯',
+			'Líder de Escuadra'   => '⚔️',
+			'Médico'              => '🏥',
+			'Fusilero'            => '🪖',
 			'Fusilero Automático' => '🔫',
-			'Granadero'         => '💥',
-			'Antitanque'        => '🚀',
-			'RTM'               => '📡',
-			'Piloto'            => '🚁',
+			'Granadero'           => '💥',
+			'Antitanque'          => '🚀',
+			'RTO'                 => '📡',
+			'Piloto'              => '🚁',
+			'Tirador'             => '🎯',
+			'Tirador Designado'   => '🎯',
+			'Spoter'              => '🔭',
+			'Spotter'             => '🔭',
 		);
 		return isset($icons[$role]) ? $icons[$role] : '👤';
 	}
