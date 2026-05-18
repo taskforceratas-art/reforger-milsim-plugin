@@ -62,7 +62,8 @@ class RMM_Metabox_Handler {
 		if ( ! current_user_can( 'edit_posts' ) ) wp_send_json_error( 'No permission' );
 
 		$id = sanitize_text_field( $_POST['workshop_id'] );
-		$response = wp_remote_get( "https://steam.gure.party/api.php?action=dependencies&id=$id" );
+		$api_url = plugins_url( 'api.php', __FILE__ );
+		$response = wp_remote_get( add_query_arg( array( 'action' => 'dependencies', 'id' => $id ), $api_url ) );
 
 		if ( is_wp_error( $response ) ) wp_send_json_error( 'Error de conexión con la API' );
 
