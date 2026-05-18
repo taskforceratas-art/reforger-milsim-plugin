@@ -42,11 +42,19 @@ class RMM_Metabox_Handler {
 			$medals_data[] = array( 'id' => $m->ID, 'text' => $m->post_title );
 		}
 
+		// Get users for assignment in events
+		$users = get_users( array( 'fields' => array( 'ID', 'display_name' ) ) );
+		$users_data = array();
+		foreach ( $users as $u ) {
+			$users_data[] = array( 'id' => $u->ID, 'text' => $u->display_name );
+		}
+
 		wp_localize_script( 'jquery', 'rmmAdminData', array(
 			'ajax_url' => admin_url( 'admin-ajax.php' ),
 			'nonce'    => wp_create_nonce( 'rmm_admin_nonce' ),
 			'roles'    => array( 'Líder de Escuadra', 'Médico', 'Fusilero', 'Fusilero Automático', 'Granadero', 'Antitanque', 'RTM', 'Piloto' ),
 			'medals'   => $medals_data,
+			'users'    => $users_data,
 			'is_event' => ( $post_type === 'eventos_partidas' )
 		) );
 	}
@@ -617,7 +625,7 @@ class RMM_Metabox_Handler {
 							<select class="slot-role-sel"></select>
 							<select class="orbat-medals-select" multiple style="width:100%"></select>
 							<div class="rmm-slot-status">
-								${(slot.usuario_id && rmmAdminData.is_event) ? `<span class="rmm-status-badge">OCUPADO</span>` : `<span style="color:#666; font-size:10px;">VACANTE</span>`}
+								${rmmAdminData.is_event ? `<select class="slot-user-sel" style="width:100%;"><option value="">VACANTE</option></select>` : `<span style="color:#666; font-size:10px;">VACANTE</span>`}
 							</div>
 							<span class="rmm-remove-btn dashicons dashicons-no-alt" title="Quitar Rol"></span>
 						</div>`);
@@ -627,6 +635,17 @@ class RMM_Metabox_Handler {
 							const selected = (slot.condecoraciones_requeridas || []).includes(m.id);
 							row.find('.orbat-medals-select').append(new Option(m.text, m.id, selected, selected));
 						});
+
+						if (rmmAdminData.is_event) {
+							const userSel = row.find('.slot-user-sel');
+							rmmAdminData.users.forEach(u => {
+								userSel.append(new Option(u.text, u.id, u.id == slot.usuario_id, u.id == slot.usuario_id));
+							});
+							userSel.on('change', function() {
+								data[sIdx].slots[rIdx].usuario_id = $(this).val() ? parseInt($(this).val()) : null;
+								updateInput();
+							});
+						}
 
 						row.find('.slot-role-sel').on('change', function() { data[sIdx].slots[rIdx].rol = $(this).val(); updateInput(); });
 						row.find('.orbat-medals-select').select2({ placeholder: "Requisitos" }).on('change', function() {
