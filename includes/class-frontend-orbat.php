@@ -18,6 +18,7 @@ class RMM_Frontend_ORBAT {
 		add_shortcode( 'rmm_title', array( $this, 'render_rmm_title_shortcode' ) );
 		add_shortcode( 'rmm_author', array( $this, 'render_rmm_author_shortcode' ) );
 		add_shortcode( 'fecha_evento', array( $this, 'render_fecha_evento_shortcode' ) );
+		add_shortcode( 'rmm_missions_grid', array( $this, 'render_missions_grid_shortcode' ) );
 		add_action( 'wp_ajax_reclamar_slot', array( $this, 'handle_slot_reservation' ) );
 		add_action( 'wp_ajax_liberar_slot', array( $this, 'handle_slot_leave' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
@@ -435,5 +436,150 @@ class RMM_Frontend_ORBAT {
 		if ( empty($required) ) return array();
 		$missing = array_diff( $required, $user_medals );
 		return array_map( 'get_the_title', $missing );
+	}
+
+	public function render_missions_grid_shortcode( $atts ) {
+		$a = shortcode_atts( array(
+			'posts_per_page' => 8,
+		), $atts );
+
+		$query = new WP_Query( array(
+			'post_type' => 'misiones',
+			'posts_per_page' => $a['posts_per_page'],
+			'post_status' => 'publish',
+		) );
+
+		if ( ! $query->have_posts() ) {
+			return '<p>No hay misiones publicadas.</p>';
+		}
+
+		ob_start();
+		?>
+		<div class="rmm-missions-grid">
+			<?php while ( $query->have_posts() ) : $query->the_post(); 
+				$post_id = get_the_ID();
+				$author = get_post_meta( $post_id, 'rmm_author', true ) ?: 'Autor desconocido';
+				$addons = get_post_meta( $post_id, 'addons_requeridos', true );
+				$addons_count = is_array($addons) ? count($addons) : 0;
+				
+				// Check for ACE/RHS
+				$has_ace = false;
+				$has_rhs = false;
+				if ( is_array($addons) ) {
+					foreach ( $addons as $addon ) {
+						if ( stripos( $addon, 'ACE' ) !== false ) $has_ace = true;
+						if ( stripos( $addon, 'RHS' ) !== false ) $has_rhs = true;
+					}
+				}
+
+				// Count slots in ORBAT
+				$orbat = get_post_meta( $post_id, 'orbat_maestro', true );
+				$slots_count = 0;
+				if ( is_array($orbat) ) {
+					foreach ( $orbat as $squad ) {
+						if ( isset($squad['slots']) ) {
+							$slots_count += count($squad['slots']);
+						}
+					}
+				}
+
+				$thumb_url = get_the_post_thumbnail_url( $post_id, 'large' ) ?: 'https://via.placeholder.com/800x450?text=Sin+Imagen';
+			?>
+				<a href="<?php the_permalink(); ?>" class="rmm-grid-card">
+					<div class="rmm-grid-thumb" style="background-image: url('<?php echo esc_url($thumb_url); ?>');">
+						<div class="rmm-grid-thumb-overlay">
+							<span class="rmm-grid-stat">📦 <?php echo $addons_count; ?> Addons</span>
+							<div class="rmm-grid-badges">
+								<?php if ($has_ace) : ?><span class="rmm-badge rmm-badge-ace">ACE</span><?php endif; ?>
+								<?php if ($has_rhs) : ?><span class="rmm-badge rmm-badge-rhs">RHS</span><?php endif; ?>
+								<?php if ($slots_count > 0) : ?><span class="rmm-badge rmm-badge-slots">👥 <?php echo $slots_count; ?></span><?php endif; ?>
+							</div>
+						</div>
+					</div>
+					<div class="rmm-grid-info">
+						<h3 class="rmm-grid-title"><?php the_title(); ?></h3>
+						<span class="rmm-grid-author">by <?php echo esc_html($author); ?></span>
+					</div>
+				</a>
+			<?php endwhile; wp_reset_postdata(); ?>
+		</div>
+
+		<style>
+			.rmm-missions-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+				gap: 20px;
+				padding: 20px 0;
+			}
+			.rmm-grid-card {
+				background: #1a1a1a;
+				border: 1px solid #333;
+				border-radius: 4px;
+				overflow: hidden;
+				text-decoration: none !important;
+				transition: transform 0.2s, border-color 0.2s;
+				display: flex;
+				flex-direction: column;
+			}
+			.rmm-grid-card:hover {
+				transform: translateY(-5px);
+				border-color: #849b4c;
+			}
+			.rmm-grid-thumb {
+				height: 160px;
+				background-size: cover;
+				background-position: center;
+				position: relative;
+			}
+			.rmm-grid-thumb-overlay {
+				position: absolute;
+				bottom: 0;
+				left: 0;
+				right: 0;
+				background: linear-gradient(transparent, rgba(0,0,0,0.8));
+				padding: 10px;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				color: #fff;
+				font-size: 11px;
+			}
+			.rmm-grid-stat {
+				font-weight: bold;
+			}
+			.rmm-grid-badges {
+				display: flex;
+				gap: 5px;
+			}
+			.rmm-badge {
+				padding: 2px 6px;
+				border-radius: 3px;
+				font-size: 10px;
+				font-weight: bold;
+				text-transform: uppercase;
+			}
+			.rmm-badge-ace { background: #4CAF50; color: #fff; }
+			.rmm-badge-rhs { background: #2196F3; color: #fff; }
+			.rmm-badge-slots { background: rgba(255,255,255,0.1); color: #fff; }
+			.rmm-grid-info {
+				padding: 15px;
+				display: flex;
+				flex-direction: column;
+				gap: 5px;
+			}
+			.rmm-grid-title {
+				margin: 0;
+				font-size: 14px;
+				color: #849b4c; /* Color táctico */
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+			}
+			.rmm-grid-author {
+				font-size: 12px;
+				color: #888;
+			}
+		</style>
+		<?php
+		return ob_get_clean();
 	}
 }
