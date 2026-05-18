@@ -538,8 +538,18 @@ class RMM_Frontend_ORBAT {
 				<input type="number" id="rmm-filter-max-addons" min="0" placeholder="Máx" style="width: 60px; background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 5px; border-radius: 3px;">
 			</div>
 			<div class="rmm-filter-group">
-				<button class="rmm-filter-btn" data-filter="ace">ACE</button>
-				<button class="rmm-filter-btn" data-filter="rhs">RHS</button>
+				<span>ACE:</span>
+				<label class="rmm-switch">
+					<input type="checkbox" id="rmm-filter-ace">
+					<span class="rmm-slider round"></span>
+				</label>
+			</div>
+			<div class="rmm-filter-group">
+				<span>RHS:</span>
+				<label class="rmm-switch">
+					<input type="checkbox" id="rmm-filter-rhs">
+					<span class="rmm-slider round"></span>
+				</label>
 			</div>
 		</div>
 
@@ -647,19 +657,52 @@ class RMM_Frontend_ORBAT {
 				padding: 5px 10px;
 				border-radius: 3px;
 			}
-			.rmm-filter-btn {
-				background: #2a2a2a;
-				color: #888;
-				border: 1px solid #444;
-				padding: 5px 15px;
-				border-radius: 3px;
-				cursor: pointer;
-				transition: all 0.2s;
+			/* Estilos de Switch */
+			.rmm-switch {
+			  position: relative;
+			  display: inline-block;
+			  width: 40px;
+			  height: 20px;
 			}
-			.rmm-filter-btn.active {
-				background: #849b4c;
-				color: #fff;
-				border-color: #849b4c;
+			.rmm-switch input {
+			  opacity: 0;
+			  width: 0;
+			  height: 0;
+			}
+			.rmm-slider {
+			  position: absolute;
+			  cursor: pointer;
+			  top: 0;
+			  left: 0;
+			  right: 0;
+			  bottom: 0;
+			  background-color: #2a2a2a;
+			  border: 1px solid #444;
+			  transition: .4s;
+			}
+			.rmm-slider:before {
+			  position: absolute;
+			  content: "";
+			  height: 14px;
+			  width: 14px;
+			  left: 2px;
+			  bottom: 2px;
+			  background-color: #888;
+			  transition: .4s;
+			}
+			input:checked + .rmm-slider {
+			  background-color: #849b4c;
+			  border-color: #849b4c;
+			}
+			input:checked + .rmm-slider:before {
+			  background-color: #fff;
+			  transform: translateX(20px);
+			}
+			.rmm-slider.round {
+			  border-radius: 20px;
+			}
+			.rmm-slider.round:before {
+			  border-radius: 50%;
 			}
 		</style>
 
@@ -669,17 +712,15 @@ class RMM_Frontend_ORBAT {
 				const authorSelect = $('#rmm-filter-author');
 				const minSlotsInput = $('#rmm-filter-min-slots');
 				const maxAddonsInput = $('#rmm-filter-max-addons');
-				const filterBtns = $('.rmm-filter-btn');
+				const aceSwitch = $('#rmm-filter-ace');
+				const rhsSwitch = $('#rmm-filter-rhs');
 
 				function applyFilters() {
 					const selectedAuthor = authorSelect.val();
 					const minSlots = parseInt(minSlotsInput.val()) || 0;
 					const maxAddons = parseInt(maxAddonsInput.val()) || Infinity;
-					
-					const activeFilters = [];
-					filterBtns.filter('.active').each(function() {
-						activeFilters.push($(this).data('filter'));
-					});
+					const filterAce = aceSwitch.is(':checked');
+					const filterRhs = rhsSwitch.is(':checked');
 
 					cards.each(function() {
 						const card = $(this);
@@ -692,8 +733,8 @@ class RMM_Frontend_ORBAT {
 						let show = true;
 
 						if (selectedAuthor && author !== selectedAuthor) show = false;
-						if (activeFilters.includes('ace') && !hasAce) show = false;
-						if (activeFilters.includes('rhs') && !hasRhs) show = false;
+						if (filterAce && !hasAce) show = false;
+						if (filterRhs && !hasRhs) show = false;
 						if (slots < minSlots) show = false;
 						if (addons > maxAddons) show = false;
 
@@ -708,10 +749,8 @@ class RMM_Frontend_ORBAT {
 				authorSelect.on('change', applyFilters);
 				minSlotsInput.on('input', applyFilters);
 				maxAddonsInput.on('input', applyFilters);
-				filterBtns.on('click', function() {
-					$(this).toggleClass('active');
-					applyFilters();
-				});
+				aceSwitch.on('change', applyFilters);
+				rhsSwitch.on('change', applyFilters);
 			});
 		</script>
 		<?php
