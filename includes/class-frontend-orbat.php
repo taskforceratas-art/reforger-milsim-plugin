@@ -109,17 +109,126 @@ class RMM_Frontend_ORBAT {
 
 		if ( empty($orbat) ) return '<p>No hay ORBAT definido.</p>';
 
-		$current_user_id = get_current_user_id();
-		$user_medals = $this->get_user_medal_ids( $current_user_id );
-
 		ob_start();
-		
+
+		if ( $post_type === 'misiones' ) {
+			$this->render_orbat_mission_mode( $orbat );
+		} else {
+			$this->render_orbat_event_mode( $orbat, $post_id );
+		}
+
+		return ob_get_clean();
+	}
+
+	/**
+	 * ORBAT: Modo Misión — Diagrama táctico informativo MILSIM
+	 */
+	private function render_orbat_mission_mode( $orbat ) {
+		$total_slots = 0;
+		foreach ( $orbat as $squad ) {
+			$total_slots += count($squad['slots']);
+		}
+		?>
+		<div class="rmm-orbat-wrapper rmm-orbat-mission">
+			<!-- Header Táctico -->
+			<div class="rmm-tac-header">
+				<div class="rmm-tac-header-left">
+					<span class="rmm-tac-label">ORDEN DE BATALLA</span>
+					<span class="rmm-tac-classification">ESTRUCTURA OPERATIVA</span>
+				</div>
+				<div class="rmm-tac-header-right">
+					<span class="rmm-tac-stat"><strong><?php echo count($orbat); ?></strong> ESC</span>
+					<span class="rmm-tac-divider">|</span>
+					<span class="rmm-tac-stat"><strong><?php echo $total_slots; ?></strong> EFE</span>
+				</div>
+			</div>
+
+			<?php foreach ( $orbat as $idx => $squad ) : ?>
+			<div class="rmm-tac-squad">
+				<div class="rmm-tac-squad-header">
+					<span class="rmm-tac-squad-icon">◆</span>
+					<span class="rmm-tac-squad-name"><?php echo esc_html($squad['escuadra']); ?></span>
+					<span class="rmm-tac-squad-count"><?php echo count($squad['slots']); ?> efectivos</span>
+				</div>
+				<div class="rmm-tac-roster">
+					<?php
+					// Group slots by role for a cleaner display
+					$roles_count = array();
+					foreach ( $squad['slots'] as $slot ) {
+						$role = $slot['rol'] ?: 'Líder de Escuadra';
+						if ( !isset($roles_count[$role]) ) {
+							$roles_count[$role] = 0;
+						}
+						$roles_count[$role]++;
+					}
+					?>
+					<?php foreach ( $roles_count as $role => $count ) : ?>
+					<div class="rmm-tac-role-row">
+						<span class="rmm-tac-role-icon"><?php echo $this->get_role_icon($role); ?></span>
+						<span class="rmm-tac-role-name"><?php echo esc_html($role); ?></span>
+						<span class="rmm-tac-role-qty">×<?php echo $count; ?></span>
+					</div>
+					<?php endforeach; ?>
+				</div>
+			</div>
+			<?php endforeach; ?>
+		</div>
+
+		<style>
+		/* === ORBAT MISIÓN: Diagrama Táctico MILSIM === */
+		.rmm-orbat-mission { font-family: 'Courier New', 'Consolas', monospace; }
+
+		.rmm-tac-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(100, 180, 100, 0.2); border-left: 4px solid #4CAF50; border-radius: 4px; }
+		.rmm-tac-header-left { display: flex; flex-direction: column; gap: 2px; }
+		.rmm-tac-label { font-size: 1.1em; font-weight: 800; color: #4CAF50; letter-spacing: 3px; text-transform: uppercase; }
+		.rmm-tac-classification { font-size: 0.65em; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+		.rmm-tac-header-right { display: flex; align-items: center; gap: 12px; }
+		.rmm-tac-stat { font-size: 0.85em; color: #aaa; letter-spacing: 1px; }
+		.rmm-tac-stat strong { color: #4CAF50; font-size: 1.3em; }
+		.rmm-tac-divider { color: #333; }
+
+		.rmm-tac-squad { background: rgba(10, 10, 10, 0.5); border: 1px solid rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; margin-top: 12px; }
+		.rmm-tac-squad-header { display: flex; align-items: center; gap: 10px; padding: 10px 18px; background: rgba(0,0,0,0.4); border-bottom: 1px solid rgba(100, 180, 100, 0.15); }
+		.rmm-tac-squad-icon { color: #4CAF50; font-size: 0.7em; }
+		.rmm-tac-squad-name { font-size: 1em; font-weight: 800; color: #ddd; text-transform: uppercase; letter-spacing: 2px; flex-grow: 1; }
+		.rmm-tac-squad-count { font-size: 0.7em; color: #666; letter-spacing: 1px; text-transform: uppercase; background: rgba(255,255,255,0.04); padding: 3px 10px; border-radius: 3px; }
+
+		.rmm-tac-roster { padding: 8px 0; }
+		.rmm-tac-role-row { display: flex; align-items: center; gap: 12px; padding: 7px 20px; border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.15s; }
+		.rmm-tac-role-row:last-child { border-bottom: none; }
+		.rmm-tac-role-row:hover { background: rgba(76, 175, 80, 0.04); }
+		.rmm-tac-role-icon { font-size: 1em; width: 22px; text-align: center; }
+		.rmm-tac-role-name { flex-grow: 1; font-size: 0.85em; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; }
+		.rmm-tac-role-qty { font-size: 0.8em; font-weight: 800; color: #4CAF50; background: rgba(76, 175, 80, 0.1); padding: 2px 10px; border-radius: 3px; min-width: 30px; text-align: center; }
+		</style>
+		<?php
+	}
+
+	/**
+	 * Get tactical icon for a role
+	 */
+	private function get_role_icon( $role ) {
+		$icons = array(
+			'Líder de Escuadra' => '⚔️',
+			'Médico'            => '🏥',
+			'Fusilero'          => '🎯',
+			'Fusilero Automático' => '🔫',
+			'Granadero'         => '💥',
+			'Antitanque'        => '🚀',
+			'RTM'               => '📡',
+			'Piloto'            => '🚁',
+		);
+		return isset($icons[$role]) ? $icons[$role] : '👤';
+	}
+
+	/**
+	 * ORBAT: Modo Evento — Cards interactivas con reservas
+	 */
+	private function render_orbat_event_mode( $orbat, $post_id ) {
 		$current_user_id = get_current_user_id();
 		$user_medals = $this->get_user_medal_ids( $current_user_id );
-		
-		// ORBAT Grid First
 		?>
-		<div class="rmm-orbat-wrapper">
+		<div class="rmm-orbat-wrapper rmm-orbat-event">
 			<?php foreach ( $orbat as $squad ) : ?>
 				<div class="rmm-squad-container">
 					<div class="rmm-squad-header">
@@ -130,8 +239,8 @@ class RMM_Frontend_ORBAT {
 							<?php 
 								$occupied = !empty($slot['usuario_id']);
 								$user = $occupied ? get_userdata($slot['usuario_id']) : null;
-								$missing = $this->get_missing_medals($slot['condecoraciones_requeridas'], $user_medals);
-								$can_reserve = empty($missing) && current_user_can('reserve_orbat_slot') && $post_type === 'eventos_partidas';
+								$missing = $this->get_missing_medals($slot['condecoraciones_requeridas'] ?? array(), $user_medals);
+								$can_reserve = empty($missing) && current_user_can('reserve_orbat_slot');
 							?>
 							<div class="rmm-slot-card <?php echo $occupied ? 'is-occupied' : 'is-vacant'; ?>">
 								<div class="rmm-slot-role">
@@ -140,24 +249,16 @@ class RMM_Frontend_ORBAT {
 								<div class="rmm-slot-action">
 								<?php if ($occupied) : ?>
 									<span class="rmm-slot-user"><?php echo esc_html($user->display_name); ?></span>
-									<?php if ( (int)$slot['usuario_id'] === $current_user_id && $post_type === 'eventos_partidas' ) : ?>
-										<button data-uuid="<?php echo esc_attr($slot['id']); ?>" data-post-id="<?php echo $post_id; ?>" class="elementor-button elementor-size-sm rmm-leave-btn" style="background-color:#dc3232; margin-top:5px; padding:5px 10px; font-size:10px;">
-											<span class="elementor-button-content-wrapper"><span class="elementor-button-text">Desapuntarse</span></span>
-										</button>
-									<?php endif; ?>
-								<?php elseif ($post_type === 'eventos_partidas') : ?>
-									<?php if ($can_reserve) : ?>
-										<button data-uuid="<?php echo esc_attr($slot['id']); ?>" data-post-id="<?php echo $post_id; ?>" class="elementor-button elementor-size-sm rmm-reserve-btn">
-											<span class="elementor-button-content-wrapper"><span class="elementor-button-text">Reclamar</span></span>
-										</button>
-									<?php else : ?>
-										<button disabled class="elementor-button elementor-size-sm rmm-locked-btn">
-											<span class="elementor-button-content-wrapper"><span class="elementor-button-text">Bloqueado</span></span>
-										</button>
-										<?php if(!empty($missing)) : ?><p class="rmm-missing-medals">Faltan: <?php echo implode(', ', $missing); ?></p><?php endif; ?>
+									<?php if ( (int)$slot['usuario_id'] === $current_user_id ) : ?>
+										<button data-uuid="<?php echo esc_attr($slot['id']); ?>" data-post-id="<?php echo $post_id; ?>" class="rmm-leave-btn">Desapuntarse</button>
 									<?php endif; ?>
 								<?php else : ?>
-									<span class="rmm-slot-status">VACANTE</span>
+									<?php if ($can_reserve) : ?>
+										<button data-uuid="<?php echo esc_attr($slot['id']); ?>" data-post-id="<?php echo $post_id; ?>" class="rmm-reserve-btn">Reclamar Slot</button>
+									<?php else : ?>
+										<button disabled class="rmm-locked-btn">Bloqueado</button>
+										<?php if(!empty($missing)) : ?><p class="rmm-missing-medals">Faltan: <?php echo implode(', ', $missing); ?></p><?php endif; ?>
+									<?php endif; ?>
 								<?php endif; ?>
 								</div>
 							</div>
@@ -168,7 +269,8 @@ class RMM_Frontend_ORBAT {
 		</div>
 
 		<style>
-		.rmm-orbat-wrapper { display: flex; flex-direction: column; gap: 30px; font-family: var(--e-global-typography-text-font-family), inherit; }
+		/* === ORBAT EVENTO: Cards Interactivas === */
+		.rmm-orbat-event { display: flex; flex-direction: column; gap: 30px; font-family: var(--e-global-typography-text-font-family), inherit; }
 		.rmm-squad-container { background: rgba(20, 20, 20, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
 		.rmm-squad-header { padding: 12px 20px; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.05); }
 		.rmm-squad-name { margin: 0; font-size: 1.3em; font-weight: 800; color: var(--e-global-color-primary, #fff); text-transform: uppercase; letter-spacing: 1px; }
@@ -181,22 +283,19 @@ class RMM_Frontend_ORBAT {
 
 		.rmm-slot-role { font-size: 0.75em; text-transform: uppercase; font-weight: 800; color: #888; letter-spacing: 0.5px; margin-bottom: 5px; }
 		.rmm-slot-user { font-size: 1.1em; font-weight: 600; color: #eee; display: block; margin-bottom: 8px; }
-
 		.rmm-slot-action { display: flex; flex-direction: column; justify-content: flex-end; flex-grow: 1; }
 
-		.rmm-reserve-btn { background-color: #FFC107 !important; color: #000 !important; width: 100%; font-weight: bold !important; transition: all 0.2s !important; border-radius: 4px !important; border: none !important; text-transform: uppercase; font-size: 0.85em; padding: 10px; }
+		.rmm-reserve-btn { background-color: #FFC107 !important; color: #000 !important; width: 100%; font-weight: bold !important; transition: all 0.2s !important; border-radius: 4px !important; border: none !important; text-transform: uppercase; font-size: 0.85em; padding: 10px; cursor: pointer; }
 		.rmm-reserve-btn:hover { background-color: #FFB300 !important; transform: scale(1.02); }
 
-		.rmm-leave-btn { background-color: #dc3232 !important; color: #fff !important; width: 100%; border-radius: 4px !important; border: none !important; font-weight: bold !important; opacity: 0.9; text-transform: uppercase; font-size: 0.75em; padding: 8px; margin-top: auto; }
+		.rmm-leave-btn { background-color: #dc3232 !important; color: #fff !important; width: 100%; border-radius: 4px !important; border: none !important; font-weight: bold !important; opacity: 0.9; text-transform: uppercase; font-size: 0.75em; padding: 8px; margin-top: auto; cursor: pointer; }
 		.rmm-leave-btn:hover { opacity: 1; }
 
 		.rmm-locked-btn { background-color: #444 !important; color: #888 !important; width: 100%; border: none !important; border-radius: 4px !important; cursor: not-allowed; padding: 10px; text-transform: uppercase; font-size: 0.85em; }
 		.rmm-missing-medals { font-size: 0.7em; color: #ff5252; margin: 8px 0 0 0; text-align: center; }
-		.rmm-slot-status { font-size: 0.8em; color: #FFC107; font-weight: bold; text-align: center; display: block; padding: 5px; background: rgba(255, 193, 7, 0.1); border-radius: 4px; }
 		</style>
 
 		<?php
-		return ob_get_clean();
 	}
 
 	public function render_addons_list_shortcode( $atts ) {
