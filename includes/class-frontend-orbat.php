@@ -16,6 +16,7 @@ class RMM_Frontend_ORBAT {
 		add_shortcode( 'rmm_description', array( $this, 'render_rmm_description_shortcode' ) );
 		add_shortcode( 'rmm_workshop_url', array( $this, 'render_rmm_workshop_url_shortcode' ) );
 		add_shortcode( 'rmm_title', array( $this, 'render_rmm_title_shortcode' ) );
+		add_shortcode( 'rmm_author', array( $this, 'render_rmm_author_shortcode' ) );
 		add_shortcode( 'fecha_evento', array( $this, 'render_fecha_evento_shortcode' ) );
 		add_action( 'wp_ajax_reclamar_slot', array( $this, 'handle_slot_reservation' ) );
 		add_action( 'wp_ajax_liberar_slot', array( $this, 'handle_slot_leave' ) );
@@ -49,6 +50,15 @@ class RMM_Frontend_ORBAT {
 		if ( ! $post_id ) return '';
 		// get_post_field with 'raw' context bypasses the 'the_title' filters (like the one appending the date)
 		return esc_html( get_post_field( 'post_title', $post_id, 'raw' ) );
+	}
+
+	public function render_rmm_author_shortcode( $atts ) {
+		$post_id = get_the_ID();
+		if ( ! $post_id ) return '';
+		$target_id = get_post_type($post_id) === 'eventos_partidas' ? (get_post_meta($post_id, 'mision_id', true) ?: $post_id) : $post_id;
+		$author = get_post_meta( $target_id, 'rmm_author', true );
+		if ( empty( $author ) ) return '';
+		return esc_html( $author );
 	}
 
 	public function render_rmm_summary_shortcode( $atts ) {

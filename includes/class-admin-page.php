@@ -84,6 +84,12 @@ class RMM_Admin_Page {
 				'params'      => 'text="Ver en Steam Workshop" class="rmm-workshop-btn"',
 			),
 			array(
+				'shortcode'   => '[rmm_author]',
+				'description' => 'Nombre del autor/creador de la misión. Se rellena manualmente en el metabox de Misión.',
+				'context'     => 'Misiones, Eventos (hereda de misión)',
+				'params'      => '—',
+			),
+			array(
 				'shortcode'   => '[rmm_orbat]',
 				'description' => 'Grid de escuadras con cards flex. Muestra slots, reservas y botones de acción.',
 				'context'     => 'Misiones (solo lectura), Eventos (interactivo)',
@@ -245,6 +251,11 @@ class RMM_Admin_Page {
 						<tr>
 							<td><code class="rmm-copy-shortcode" title="Clic para copiar">rmm_description</code></td>
 							<td>Descripción completa del mod desde el Workshop</td>
+							<td><span class="rmm-context-badge">Misiones, Eventos</span></td>
+						</tr>
+						<tr>
+							<td><code class="rmm-copy-shortcode" title="Clic para copiar">rmm_author</code></td>
+							<td>Nombre del autor/creador de la misión</td>
 							<td><span class="rmm-context-badge">Misiones, Eventos</span></td>
 						</tr>
 					</tbody>

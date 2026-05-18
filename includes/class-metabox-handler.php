@@ -187,6 +187,10 @@ class RMM_Metabox_Handler {
 			<textarea style="display:none;" name="rmm_summary" id="hidden-summary"><?php echo esc_textarea(get_post_meta($post->ID, 'rmm_summary', true)); ?></textarea>
 			<textarea style="display:none;" name="rmm_description" id="hidden-description"><?php echo esc_textarea(get_post_meta($post->ID, 'rmm_description', true)); ?></textarea>
 			<div style="margin-top:15px;">
+				<label style="display:block; margin-bottom:5px; font-size:11px; color:#aaa;">AUTOR DE LA MISIÓN</label>
+				<input type="text" name="rmm_author" id="rmm_author" value="<?php echo esc_attr(get_post_meta($post->ID, 'rmm_author', true)); ?>" style="width:100%; background:#111; border:1px solid #444; color:#fff; padding:8px; box-sizing:border-box;" placeholder="Nombre del creador del mod...">
+			</div>
+			<div style="margin-top:15px;">
 				<label style="display:block; margin-bottom:5px; font-size:11px; color:#aaa;">LISTA DE DEPENDENCIAS</label>
 				<textarea name="addons_requeridos_text" id="addons_requeridos" readonly style="width:100%; background:#111; border:1px solid #333; color:#888; font-family:monospace; font-size:11px;" rows="4"><?php echo esc_textarea($addons_text); ?></textarea>
 			</div>
@@ -515,7 +519,7 @@ class RMM_Metabox_Handler {
 		}
 
 		// Save Mission/Event fields
-		$fields = array( 'workshop_id', 'mission_api_name', 'workshop_url', 'mision_id', 'fecha_inicio', 'fecha_fin', 'estado', 'condecoracion_premio' );
+		$fields = array( 'workshop_id', 'mission_api_name', 'workshop_url', 'mision_id', 'fecha_inicio', 'fecha_fin', 'estado', 'condecoracion_premio', 'rmm_author' );
 		foreach ( $fields as $f ) {
 			if ( isset( $_POST[$f] ) ) update_post_meta( $post_id, $f, sanitize_text_field( $_POST[$f] ) );
 		}
