@@ -101,6 +101,10 @@ class RMM_Frontend_ORBAT {
 		
 		if ( ! in_array( $post_type, array( 'eventos_partidas', 'misiones' ) ) ) return '';
 
+		$a = shortcode_atts( array(
+			'mode' => '', // 'milsim' o 'cards'
+		), $atts );
+
 		if ( $post_type === 'misiones' ) {
 			$orbat = get_post_meta( $post_id, 'orbat_maestro', true );
 		} else {
@@ -111,7 +115,12 @@ class RMM_Frontend_ORBAT {
 
 		ob_start();
 
-		if ( $post_type === 'misiones' ) {
+		$mode = $a['mode'];
+		if ( empty( $mode ) ) {
+			$mode = ( $post_type === 'misiones' ) ? 'milsim' : 'cards';
+		}
+
+		if ( $mode === 'milsim' ) {
 			$this->render_orbat_mission_mode( $orbat );
 		} else {
 			$this->render_orbat_event_mode( $orbat, $post_id );
@@ -249,15 +258,17 @@ class RMM_Frontend_ORBAT {
 								<div class="rmm-slot-action">
 								<?php if ($occupied) : ?>
 									<span class="rmm-slot-user"><?php echo esc_html($user->display_name); ?></span>
-									<?php if ( (int)$slot['usuario_id'] === $current_user_id ) : ?>
+									<?php if ( (int)$slot['usuario_id'] === $current_user_id && $post_type === 'eventos_partidas' ) : ?>
 										<button data-uuid="<?php echo esc_attr($slot['id']); ?>" data-post-id="<?php echo $post_id; ?>" class="rmm-leave-btn">Desapuntarse</button>
 									<?php endif; ?>
 								<?php else : ?>
-									<?php if ($can_reserve) : ?>
+									<?php if ($can_reserve && $post_type === 'eventos_partidas') : ?>
 										<button data-uuid="<?php echo esc_attr($slot['id']); ?>" data-post-id="<?php echo $post_id; ?>" class="rmm-reserve-btn">Reclamar Slot</button>
-									<?php else : ?>
+									<?php elseif ($post_type === 'eventos_partidas') : ?>
 										<button disabled class="rmm-locked-btn">Bloqueado</button>
 										<?php if(!empty($missing)) : ?><p class="rmm-missing-medals">Faltan: <?php echo implode(', ', $missing); ?></p><?php endif; ?>
+									<?php else : ?>
+										<span class="rmm-slot-status">VACANTE</span>
 									<?php endif; ?>
 								<?php endif; ?>
 								</div>
@@ -293,6 +304,7 @@ class RMM_Frontend_ORBAT {
 
 		.rmm-locked-btn { background-color: #444 !important; color: #888 !important; width: 100%; border: none !important; border-radius: 4px !important; cursor: not-allowed; padding: 10px; text-transform: uppercase; font-size: 0.85em; }
 		.rmm-missing-medals { font-size: 0.7em; color: #ff5252; margin: 8px 0 0 0; text-align: center; }
+		.rmm-slot-status { font-size: 0.8em; color: #FFC107; font-weight: bold; text-align: center; display: block; padding: 5px; background: rgba(255, 193, 7, 0.1); border-radius: 4px; }
 		</style>
 
 		<?php

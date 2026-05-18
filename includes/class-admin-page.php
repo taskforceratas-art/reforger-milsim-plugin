@@ -91,9 +91,9 @@ class RMM_Admin_Page {
 			),
 			array(
 				'shortcode'   => '[rmm_orbat]',
-				'description' => 'Grid de escuadras con cards flex. Muestra slots, reservas y botones de acción.',
-				'context'     => 'Misiones (solo lectura), Eventos (interactivo)',
-				'params'      => '—',
+				'description' => 'Muestra el ORBAT. Por defecto usa estilo MILSIM en misiones y CARDS en eventos.',
+				'context'     => 'Misiones, Eventos',
+				'params'      => 'mode="milsim|cards"',
 			),
 			array(
 				'shortcode'   => '[rmm_addons_list]',
