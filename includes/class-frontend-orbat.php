@@ -57,7 +57,7 @@ class RMM_Frontend_ORBAT {
 		if ( ! $post_id ) return '';
 		$target_id = get_post_type($post_id) === 'eventos_partidas' ? (get_post_meta($post_id, 'mision_id', true) ?: $post_id) : $post_id;
 		$author = get_post_meta( $target_id, 'rmm_author', true );
-		if ( empty( $author ) ) return '';
+		if ( empty( $author ) ) return '<em>[Autor no definido]</em>';
 		return esc_html( $author );
 	}
 
