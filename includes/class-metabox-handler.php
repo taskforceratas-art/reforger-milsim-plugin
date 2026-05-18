@@ -17,6 +17,9 @@ class RMM_Metabox_Handler {
 		add_action( 'wp_ajax_get_mission_orbat', array( $this, 'ajax_get_mission_orbat' ) );
 		add_action( 'wp_ajax_set_workshop_thumbnail', array( $this, 'ajax_set_workshop_thumbnail' ) );
 		add_action( 'wp_ajax_sync_mission_to_event', array( $this, 'ajax_sync_mission_to_event' ) );
+		add_action( 'wp_ajax_save_orbat_preset', array( $this, 'ajax_save_orbat_preset' ) );
+		add_action( 'wp_ajax_get_orbat_presets', array( $this, 'ajax_get_orbat_presets' ) );
+		add_action( 'wp_ajax_delete_orbat_preset', array( $this, 'ajax_delete_orbat_preset' ) );
 	}
 
 	/**
@@ -159,6 +162,54 @@ class RMM_Metabox_Handler {
 			'summary'     => $summary,
 			'description' => $description
 		) );
+	}
+
+	/**
+	 * AJAX: Guardar Preset de ORBAT
+	 */
+	public function ajax_save_orbat_preset() {
+		check_ajax_referer( 'rmm_admin_nonce', 'nonce' );
+		if ( ! current_user_can( 'edit_posts' ) ) wp_send_json_error( 'No permission' );
+
+		$name = sanitize_text_field( $_POST['preset_name'] );
+		$orbat_data = json_decode( stripslashes( $_POST['orbat_data'] ), true );
+
+		if ( empty($name) ) wp_send_json_error( 'El nombre del preset no puede estar vacío.' );
+		if ( ! is_array($orbat_data) ) wp_send_json_error( 'Datos de ORBAT inválidos.' );
+
+		$presets = get_option( 'rmm_orbat_presets', array() );
+		$presets[$name] = $orbat_data;
+
+		update_option( 'rmm_orbat_presets', $presets );
+		wp_send_json_success( 'Preset guardado correctamente.' );
+	}
+
+	/**
+	 * AJAX: Obtener Presets de ORBAT
+	 */
+	public function ajax_get_orbat_presets() {
+		check_ajax_referer( 'rmm_admin_nonce', 'nonce' );
+		$presets = get_option( 'rmm_orbat_presets', array() );
+		wp_send_json_success( $presets );
+	}
+
+	/**
+	 * AJAX: Eliminar Preset de ORBAT
+	 */
+	public function ajax_delete_orbat_preset() {
+		check_ajax_referer( 'rmm_admin_nonce', 'nonce' );
+		if ( ! current_user_can( 'edit_posts' ) ) wp_send_json_error( 'No permission' );
+
+		$name = sanitize_text_field( $_POST['preset_name'] );
+		$presets = get_option( 'rmm_orbat_presets', array() );
+
+		if ( isset( $presets[$name] ) ) {
+			unset( $presets[$name] );
+			update_option( 'rmm_orbat_presets', $presets );
+			wp_send_json_success( 'Preset eliminado.' );
+		} else {
+			wp_send_json_error( 'Preset no encontrado.' );
+		}
 	}
 
 	/**
@@ -369,6 +420,20 @@ class RMM_Metabox_Handler {
 				<button type="button" class="button" id="rmm-pull-mission-orbat">📥 IMPORTAR ORBAT DE MISIÓN</button>
 			</div>
 			<?php endif; ?>
+
+			<!-- Presets Section -->
+			<div class="rmm-presets-box" style="margin-bottom:20px; padding:15px; background:#2a2a2a; border:1px solid #444; border-radius:4px;">
+				<p style="margin:0 0 10px 0; font-size:11px; color:#aaa; text-transform:uppercase; letter-spacing:0.5px;"><strong>Plantillas de ORBAT</strong></p>
+				<div style="display:flex; gap:10px; align-items:center;">
+					<select id="rmm-preset-select" style="background:#111 !important; color:#fff !important; border:1px solid #444 !important; flex-grow:1;">
+						<option value="">-- Seleccionar Plantilla --</option>
+					</select>
+					<button type="button" class="button" id="rmm-load-preset">Cargar</button>
+					<button type="button" class="button" id="rmm-save-preset" style="background:#2271b1; color:#fff; border-color:#2271b1;">Guardar Actual</button>
+					<button type="button" class="button" id="rmm-delete-preset" style="color:#ff4d4d; border-color:#d63638;">Borrar</button>
+				</div>
+			</div>
+
 			<div id="rmm-squads-container"></div>
 			<div style="margin-top:20px; padding-top:20px; border-top:1px solid #333;">
 				<button type="button" class="button button-primary" id="rmm-add-squad" style="background:#2271b1; border-color:#2271b1;">+ AÑADIR ESCUADRA TÁCTICA</button>
@@ -394,6 +459,75 @@ class RMM_Metabox_Handler {
 			const input = $('#rmm-orbat-data-input');
 			let data = JSON.parse(input.val() || '[]');
 			if(typeof data === 'string') data = JSON.parse(data);
+
+			// --- PRESETS LOGIC ---
+			function loadPresetsList() {
+				$.post(rmmAdminData.ajax_url, {
+					action: 'get_orbat_presets',
+					nonce: rmmAdminData.nonce
+				}, function(res) {
+					if(res.success) {
+						const select = $('#rmm-preset-select');
+						select.find('option:not(:first)').remove();
+						const presets = res.data;
+						for (const name in presets) {
+							select.append(new Option(name, name));
+						}
+					}
+				});
+			}
+			loadPresetsList();
+
+			$('#rmm-save-preset').on('click', function() {
+				const name = prompt('Introduce el nombre de la plantilla:');
+				if (!name) return;
+				
+				$.post(rmmAdminData.ajax_url, {
+					action: 'save_orbat_preset',
+					preset_name: name,
+					orbat_data: JSON.stringify(data),
+					nonce: rmmAdminData.nonce
+				}, function(res) {
+					alert(res.data);
+					if(res.success) loadPresetsList();
+				});
+			});
+
+			$('#rmm-load-preset').on('click', function() {
+				const name = $('#rmm-preset-select').val();
+				if (!name) return alert('Selecciona una plantilla primero.');
+				if (data.length > 0 && !confirm('Esto borrará el ORBAT actual. ¿Continuar?')) return;
+				
+				$.post(rmmAdminData.ajax_url, {
+					action: 'get_orbat_presets',
+					nonce: rmmAdminData.nonce
+				}, function(res) {
+					if(res.success) {
+						const presets = res.data;
+						if (presets[name]) {
+							data = presets[name];
+							render();
+							updateInput();
+						}
+					}
+				});
+			});
+
+			$('#rmm-delete-preset').on('click', function() {
+				const name = $('#rmm-preset-select').val();
+				if (!name) return alert('Selecciona una plantilla primero.');
+				if (!confirm(`¿Seguro que quieres borrar la plantilla "${name}"?`)) return;
+				
+				$.post(rmmAdminData.ajax_url, {
+					action: 'delete_orbat_preset',
+					preset_name: name,
+					nonce: rmmAdminData.nonce
+				}, function(res) {
+					alert(res.data);
+					if(res.success) loadPresetsList();
+				});
+			});
+			// --- END PRESETS LOGIC ---
 
 			// Logic to pull ORBAT from mission if event is new and mission is selected
 			const postType = '<?php echo get_post_type($post->ID); ?>';
