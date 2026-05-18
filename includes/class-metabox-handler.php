@@ -413,11 +413,70 @@ class RMM_Metabox_Handler {
 							<input type="text" class="rmm-squad-title" value="${squad.escuadra || ''}" placeholder="NOMBRE DE ESCUADRA (Ej: ALPHA 1-1)">
 							<span class="rmm-remove-btn dashicons dashicons-trash" title="Borrar Escuadra"></span>
 						</div>
+						<div class="rmm-frequencies-box" style="padding:10px; background:rgba(0,0,0,0.1); border-bottom:1px solid #333;">
+							<label style="font-size:10px; color:#aaa; display:block; margin-bottom:5px;">FRECUENCIAS DE RADIO</label>
+							<div class="rmm-freq-list"></div>
+							<button type="button" class="button button-small rmm-add-freq">+ Añadir Radio</button>
+						</div>
 						<div class="rmm-slots-list"></div>
 						<div class="rmm-add-slot-container">
 							<button type="button" class="button rmm-add-slot">+ AÑADIR ROL</button>
 						</div>
 					</div>`);
+
+					// Render Frequencies
+					squad.frequencies = squad.frequencies || [];
+					squad.frequencies.forEach((freq, fIdx) => {
+						const freqRow = $(`<div class="rmm-freq-row" style="display:flex; gap:5px; margin-bottom:5px; align-items:center;">
+							<input type="text" class="freq-purpose" value="${freq.purpose || ''}" placeholder="Propósito (ej: GLOBAL)" style="width:30%;">
+							<select class="freq-type" style="width:20%;">
+								<option value="SR" ${freq.type==='SR'?'selected':''}>Corta (SR)</option>
+								<option value="LR" ${freq.type==='LR'?'selected':''}>Larga (LR)</option>
+							</select>
+							<input type="text" class="freq-channel" value="${freq.channel || ''}" placeholder="Ch" style="width:15%;">
+							<input type="text" class="freq-value" value="${freq.frequency || ''}" placeholder="MHz" style="width:25%;">
+							<span class="rmm-remove-freq dashicons dashicons-no-alt" title="Quitar" style="cursor:pointer; color:#a00;"></span>
+						</div>`);
+
+						const updateFreqData = () => {
+							const type = freqRow.find('.freq-type').val();
+							const ch = freqRow.find('.freq-channel').val();
+							
+							// Presets
+							const srPresets = { '1': '310', '2': '311', '3': '312', '4': '313', '5': '314', '6': '315' };
+							const lrPresets = { '1': '42', '2': '43', '3': '44', '4': '45', '5': '46', '6': '47' };
+							
+							if (type === 'SR' && srPresets[ch]) {
+								freqRow.find('.freq-value').val(srPresets[ch]);
+								squad.frequencies[fIdx].frequency = srPresets[ch];
+							} else if (type === 'LR' && lrPresets[ch]) {
+								freqRow.find('.freq-value').val(lrPresets[ch]);
+								squad.frequencies[fIdx].frequency = lrPresets[ch];
+							}
+						};
+
+						freqRow.find('.freq-purpose').on('change', function() { squad.frequencies[fIdx].purpose = $(this).val(); updateInput(); });
+						freqRow.find('.freq-type').on('change', function() { 
+							squad.frequencies[fIdx].type = $(this).val(); 
+							updateFreqData();
+							updateInput(); 
+						});
+						freqRow.find('.freq-channel').on('change', function() { 
+							squad.frequencies[fIdx].channel = $(this).val(); 
+							updateFreqData();
+							updateInput(); 
+						});
+						freqRow.find('.freq-value').on('change', function() { squad.frequencies[fIdx].frequency = $(this).val(); updateInput(); });
+						
+						freqRow.find('.rmm-remove-freq').on('click', () => { squad.frequencies.splice(fIdx, 1); render(); updateInput(); });
+						
+						card.find('.rmm-freq-list').append(freqRow);
+					});
+
+					card.find('.rmm-add-freq').on('click', () => {
+						squad.frequencies.push({ purpose: '', type: 'SR', channel: '', frequency: '' });
+						render(); updateInput();
+					});
 
 					squad.slots.forEach((slot, rIdx) => {
 						const row = $(`<div class="rmm-slot-row">

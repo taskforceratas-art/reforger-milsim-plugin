@@ -159,6 +159,17 @@ class RMM_Frontend_ORBAT {
 					<span class="rmm-tac-squad-name"><?php echo esc_html($squad['escuadra']); ?></span>
 					<span class="rmm-tac-squad-count"><?php echo count($squad['slots']); ?> efectivos</span>
 				</div>
+				<?php if ( !empty($squad['frequencies']) ) : ?>
+				<div class="rmm-tac-frequencies" style="padding:5px 15px; background:rgba(255,255,255,0.02); font-size:0.85em; color:#aaa; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; flex-wrap:wrap; gap:10px;">
+					<?php foreach ( $squad['frequencies'] as $freq ) : ?>
+						<span class="rmm-tac-freq-item">
+							<strong style="color:#FFC107;"><?php echo esc_html($freq['purpose'] ?: 'Radio'); ?>:</strong> 
+							<?php echo esc_html($freq['type']); ?> Ch <?php echo esc_html($freq['channel']); ?> 
+							(<?php echo esc_html($freq['frequency']); ?> MHz)
+						</span>
+					<?php endforeach; ?>
+				</div>
+				<?php endif; ?>
 				<div class="rmm-tac-roster">
 					<?php
 					// Group slots by role for a cleaner display
@@ -247,6 +258,17 @@ class RMM_Frontend_ORBAT {
 					<div class="rmm-squad-header">
 						<h3 class="rmm-squad-name"><?php echo esc_html($squad['escuadra']); ?></h3>
 					</div>
+					<?php if ( !empty($squad['frequencies']) ) : ?>
+					<div class="rmm-squad-frequencies" style="padding:8px 20px; background:rgba(0,0,0,0.1); font-size:0.85em; color:#aaa; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; flex-wrap:wrap; gap:15px;">
+						<?php foreach ( $squad['frequencies'] as $freq ) : ?>
+							<span class="rmm-freq-item">
+								<strong style="color:#FFC107;"><?php echo esc_html($freq['purpose'] ?: 'Radio'); ?>:</strong> 
+								<?php echo esc_html($freq['type']); ?> Ch <?php echo esc_html($freq['channel']); ?> 
+								(<?php echo esc_html($freq['frequency']); ?> MHz)
+							</span>
+						<?php endforeach; ?>
+					</div>
+					<?php endif; ?>
 					<div class="rmm-slots-grid">
 						<?php foreach ( $squad['slots'] as $slot ) : ?>
 							<?php 
