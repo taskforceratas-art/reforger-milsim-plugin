@@ -80,10 +80,14 @@ class RMM_Server_Status_Handler {
      */
     public function render_server_status( $atts ) {
         $atts = shortcode_atts( array(
-            'server_id'     => '',
-            'show_uptime'   => '1',
-            'show_scenario' => '1',
-        ), $atts );
+                    'server_id'     => '',
+                    'show_uptime'   => '1',
+                    'show_scenario' => '1',
+                    'fill'          => '0',
+                ), $atts );
+
+                $fill = ( $atts['fill'] === '1' );
+                $fill_style = $fill ? 'height:100%; display:flex; flex-direction:column;' : '';
 
         $data = $this->get_server_data( $atts['server_id'] );
         if ( ! $data ) {
@@ -98,7 +102,7 @@ class RMM_Server_Status_Handler {
 
         ob_start();
         ?>
-        <div class="rmm-server-widget rmm-server-status-widget" style="background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 20px; font-family: 'Inter', sans-serif; color: #c9d1d9;">
+        <div class="rmm-server-widget rmm-server-status-widget" style="background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 20px; font-family: 'Inter', sans-serif; color: #c9d1d9; <?php echo $fill_style; ?>">
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
                 <span class="<?php echo $pulse_class; ?>" style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: <?php echo $status_color; ?>; box-shadow: 0 0 12px <?php echo $status_color; ?>80;"></span>
                 <i class="<?php echo $status_icon; ?>" style="color: <?php echo $status_color; ?>; font-size: 1.5rem;"></i>
@@ -141,11 +145,15 @@ class RMM_Server_Status_Handler {
      */
     public function render_server_resources( $atts ) {
         $atts = shortcode_atts( array(
-            'server_id' => '',
-            'show_cpu'  => '1',
-            'show_ram'  => '1',
-            'show_disk' => '1',
-        ), $atts );
+                    'server_id' => '',
+                    'show_cpu'  => '1',
+                    'show_ram'  => '1',
+                    'show_disk' => '1',
+                    'fill'      => '0',
+                ), $atts );
+
+                $fill = ( $atts['fill'] === '1' );
+                $fill_style = $fill ? 'height:100%; display:flex; flex-direction:column;' : '';
 
         $data = $this->get_server_data( $atts['server_id'] );
         if ( ! $data ) {
@@ -170,7 +178,7 @@ class RMM_Server_Status_Handler {
 
         ob_start();
         ?>
-        <div class="rmm-server-widget rmm-server-resources-widget" style="background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 20px; font-family: 'Inter', sans-serif; color: #c9d1d9;">
+        <div class="rmm-server-widget rmm-server-resources-widget" style="background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 20px; font-family: 'Inter', sans-serif; color: #c9d1d9; <?php echo $fill_style; ?>">
             <h4 style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #8b949e; margin: 0 0 16px; display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-chart-bar" style="color: #58a6ff;"></i> <?php _e( 'Recursos del Servidor', 'reforger-milsim' ); ?>
             </h4>
@@ -225,8 +233,12 @@ class RMM_Server_Status_Handler {
      */
     public function render_server_info( $atts ) {
         $atts = shortcode_atts( array(
-            'server_id' => '',
-        ), $atts );
+                    'server_id' => '',
+                    'fill'      => '0',
+                ), $atts );
+
+                $fill = ( $atts['fill'] === '1' );
+                $fill_style = $fill ? 'height:100%; display:flex; flex-direction:column;' : '';
 
         $data = $this->get_server_data( $atts['server_id'] );
         if ( ! $data ) {
@@ -239,7 +251,7 @@ class RMM_Server_Status_Handler {
 
                 ob_start();
         ?>
-        <div class="rmm-server-widget rmm-server-info-widget" style="background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 20px; font-family: 'Inter', sans-serif; color: #c9d1d9;">
+        <div class="rmm-server-widget rmm-server-info-widget" style="background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 20px; font-family: 'Inter', sans-serif; color: #c9d1d9; <?php echo $fill_style; ?>">
             <h4 style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #8b949e; margin: 0 0 16px; display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-circle-info" style="color: #58a6ff;"></i> <?php _e( 'Información de Partida', 'reforger-milsim' ); ?>
             </h4>
