@@ -9,23 +9,33 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class RMM_Medals_Handler {
 
 	public function __construct() {
-		// Bloque 2: Estandarización de Imágenes
-		add_action( 'init', array( $this, 'register_image_sizes' ) );
+			// Bloque 2: Estandarización de Imágenes
+			add_action( 'init', array( $this, 'register_image_sizes' ) );
 		
-		// Bloque 1: Metabox de Prioridad Visual
-		add_action( 'add_meta_boxes', array( $this, 'add_priority_metabox' ) );
-		add_action( 'save_post', array( $this, 'save_priority_metabox' ) );
+			// Bloque 1: Metabox de Prioridad Visual
+			add_action( 'add_meta_boxes', array( $this, 'add_priority_metabox' ) );
+			add_action( 'save_post', array( $this, 'save_priority_metabox' ) );
 
-		// Bloque 3: Interfaz de Otorgamiento Manual (Backend)
-		add_action( 'admin_menu', array( $this, 'register_medal_submenu' ) );
+			// Bloque 3: Interfaz de Otorgamiento Manual (Backend)
+			add_action( 'admin_menu', array( $this, 'register_medal_submenu' ) );
 		
-		// Bloque 4: El Pasador de Diario - Ribbon Rack (Frontend)
-		add_shortcode( 'clan_pasador_medallas', array( $this, 'render_ribbon_rack' ) );
+			// Bloque 4: El Pasador de Diario - Ribbon Rack (Frontend)
+			add_shortcode( 'clan_pasador_medallas', array( $this, 'render_ribbon_rack' ) );
 
-		// Nuevos Shortcodes para Listado y Perfil de Miembros
-		add_shortcode( 'clan_lista_miembros', array( $this, 'render_members_list' ) );
-		add_shortcode( 'clan_perfil_operador', array( $this, 'render_operator_profile_shortcode' ) );
-	}
+			// Nuevos Shortcodes para Listado y Perfil de Miembros
+			add_shortcode( 'clan_lista_miembros', array( $this, 'render_members_list' ) );
+			add_shortcode( 'clan_perfil_operador', array( $this, 'render_operator_profile_shortcode' ) );
+
+			// Enqueue FontAwesome para iconos
+			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
+		}
+
+		/**
+		 * Enqueue FontAwesome desde CDN
+		 */
+		public function enqueue_frontend_assets() {
+			wp_enqueue_style( 'fontawesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css', array(), '6.5.1' );
+		}
 
 	/**
 	 * Bloque 2: Estandarización de Imágenes
@@ -201,9 +211,12 @@ class RMM_Medals_Handler {
 			'profile_url' => '', // URL opcional si tienen una página propia para el perfil, si no se recarga la misma
 		), $atts );
 
-		// Obtener usuarios con roles militares activos
+		// Roles que se mostrarán en el listado
+		$target_roles = array( 'recluta', 'activo', 'baja_indefinida', 'baja_definitiva', 'expulsado' );
+
+		// Obtener usuarios con los roles especificados
 		$users = get_users( array(
-			'role__in' => array( 'fundador', 'activo', 'recluta', 'reservista', 'veterano', 'aliado', 'administrator' ),
+			'role__in' => $target_roles,
 			'orderby'  => 'display_name',
 			'order'    => 'ASC'
 		) );
@@ -282,27 +295,50 @@ class RMM_Medals_Handler {
 					$enrol_date   = get_user_meta( $uid, 'rmm_enrolment_date', true );
 					$enrol_date_f = !empty( $enrol_date ) ? date('d/m/Y', strtotime($enrol_date)) : __( 'No registrada', 'reforger-milsim' );
 
-					// Obtener rol militar principal
-					$wp_roles = wp_roles();
-					$main_role = 'visitante';
-					foreach ( $user->roles as $r ) {
-						if ( in_array( $r, array( 'fundador', 'activo', 'recluta', 'reservista', 'veterano', 'aliado', 'administrator' ) ) ) {
-							$main_role = $r;
-							break;
-						}
-					}
-					$role_name = isset( $wp_roles->role_names[$main_role] ) ? translate_user_role( $wp_roles->role_names[$main_role] ) : ucfirst($main_role);
+									// Obtener TODOS los roles del usuario que coincidan con el filtro
+									$wp_roles = wp_roles();
+									$matched_roles = array();
+									$first_role_slug = '';
+									foreach ( $user->roles as $r ) {
+										if ( in_array( $r, $target_roles ) ) {
+											$matched_roles[] = isset( $wp_roles->role_names[$r] ) ? translate_user_role( $wp_roles->role_names[$r] ) : ucfirst($r);
+											if ( $first_role_slug === '' ) $first_role_slug = $r;
+										}
+									}
+									if ( empty($matched_roles) ) {
+										$matched_roles = array( isset($wp_roles->role_names[$user->roles[0]]) ? translate_user_role($wp_roles->role_names[$user->roles[0]]) : ucfirst($user->roles[0]) );
+										$first_role_slug = $user->roles[0] ?? '';
+									}
 					
-					// Configurar enlace del perfil
-					$profile_link = !empty($a['profile_url']) ? esc_url( add_query_arg( 'operator_id', $uid, $a['profile_url'] ) ) : esc_url( add_query_arg( 'operator_id', $uid ) );
+									// Configurar enlace del perfil
+									$profile_link = !empty($a['profile_url']) ? esc_url( add_query_arg( 'operator_id', $uid, $a['profile_url'] ) ) : esc_url( add_query_arg( 'operator_id', $uid ) );
 					
-					// Color del borde según rol
-					$border_color = '#849b4c'; // verde oliva táctico por defecto
-					if ( $main_role === 'fundador' || $main_role === 'administrator' ) {
-						$border_color = '#d97706'; // dorado/ámbar para mando
-					} elseif ( $main_role === 'veterano' ) {
-						$border_color = '#7c3aed'; // púrpura para veteranos
-					}
+									// Color del borde según rol
+									$border_color = '#849b4c';
+									if ( $first_role_slug === 'expulsado' ) {
+										$border_color = '#ef4444';
+									} elseif ( $first_role_slug === 'baja_definitiva' ) {
+										$border_color = '#6b7280';
+									} elseif ( $first_role_slug === 'baja_indefinida' ) {
+										$border_color = '#f59e0b';
+									} elseif ( $first_role_slug === 'recluta' ) {
+										$border_color = '#3b82f6';
+									} elseif ( $first_role_slug === 'activo' ) {
+										$border_color = '#22c55e';
+									}
+					
+									$status_icon = 'fa-solid fa-circle';
+									$status_color = '#22c55e';
+									if ( $first_role_slug === 'expulsado' || $first_role_slug === 'baja_definitiva' ) {
+										$status_icon = 'fa-solid fa-circle-xmark';
+										$status_color = '#ef4444';
+									} elseif ( $first_role_slug === 'baja_indefinida' ) {
+										$status_icon = 'fa-solid fa-circle-pause';
+										$status_color = '#f59e0b';
+									} elseif ( $first_role_slug === 'recluta' ) {
+										$status_icon = 'fa-solid fa-circle-up';
+										$status_color = '#3b82f6';
+									}
 					?>
 					
 					<!-- Card de Operador -->
@@ -317,30 +353,36 @@ class RMM_Medals_Handler {
 						<div class="rmm-card-body">
 							
 							<!-- Cabecera: Avatar + Nombre + Rango -->
-							<div class="rmm-card-header">
-								<div class="rmm-avatar-wrap">
-									<?php echo get_avatar( $uid, 90, '', '', array( 'class' => 'rmm-avatar-img' ) ); ?>
-									<div class="rmm-status-dot" title="Activo"></div>
+								<div class="rmm-card-header">
+									<div class="rmm-avatar-wrap">
+										<?php echo get_avatar( $uid, 90, '', '', array( 'class' => 'rmm-avatar-img' ) ); ?>
+										<div class="rmm-status-dot" title="<?php echo esc_attr($first_role_slug); ?>" style="background: <?php echo $status_color; ?>;">
+											<i class="<?php echo $status_icon; ?>" style="font-size: 8px; color: #fff; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"></i>
+										</div>
+									</div>
+									<h3 class="rmm-card-name"><?php echo esc_html( $user->display_name ); ?></h3>
+									<div class="rmm-card-roles">
+										<?php foreach ( $matched_roles as $role_label ) : ?>
+											<span class="rmm-card-rank"><?php echo esc_html( $role_label ); ?></span>
+										<?php endforeach; ?>
+									</div>
 								</div>
-								<h3 class="rmm-card-name"><?php echo esc_html( $user->display_name ); ?></h3>
-								<span class="rmm-card-rank"><?php echo esc_html( $role_name ); ?></span>
-							</div>
 
 							<!-- Stats rápidos visibles siempre -->
-							<div class="rmm-card-stats">
-								<div class="rmm-stat">
-									<span class="rmm-stat-value"><?php echo $attendance; ?></span>
-									<span class="rmm-stat-label">Misiones</span>
+								<div class="rmm-card-stats">
+									<div class="rmm-stat">
+										<span class="rmm-stat-value"><?php echo $attendance; ?></span>
+										<span class="rmm-stat-label"><i class="fa-solid fa-bullseye"></i> Misiones</span>
+									</div>
+									<div class="rmm-stat">
+										<span class="rmm-stat-value"><?php echo $kd_ratio; ?></span>
+										<span class="rmm-stat-label"><i class="fa-solid fa-skull"></i> K/D</span>
+									</div>
+									<div class="rmm-stat">
+										<span class="rmm-stat-value"><?php echo $hours; ?>h</span>
+										<span class="rmm-stat-label"><i class="fa-solid fa-clock"></i> Horas</span>
+									</div>
 								</div>
-								<div class="rmm-stat">
-									<span class="rmm-stat-value"><?php echo $kd_ratio; ?></span>
-									<span class="rmm-stat-label">K/D</span>
-								</div>
-								<div class="rmm-stat">
-									<span class="rmm-stat-value"><?php echo $hours; ?>h</span>
-									<span class="rmm-stat-label">Horas</span>
-								</div>
-							</div>
 
 							<!-- Pasador de Medallas -->
 							<div class="rmm-card-ribbons">
@@ -365,49 +407,55 @@ class RMM_Medals_Handler {
 										<?php endif; ?>
 									</div>
 								<?php else : ?>
-									<span class="rmm-no-medals"><?php _e( 'Sin condecoraciones', 'reforger-milsim' ); ?></span>
+									<span class="rmm-no-medals"><i class="fa-solid fa-ribbon"></i> <?php _e( 'Sin condecoraciones', 'reforger-milsim' ); ?></span>
 								<?php endif; ?>
 							</div>
 
 						</div>
 
 						<!-- Overlay lateral que se desliza en hover -->
-						<div class="rmm-card-overlay">
-							<div class="rmm-overlay-scroll">
-								<h4 class="rmm-overlay-title">
-									<span>📂 DOSSIER</span>
-									<span class="rmm-overlay-id">#<?php echo $uid; ?></span>
-								</h4>
+							<div class="rmm-card-overlay">
+								<div class="rmm-overlay-scroll">
+									<h4 class="rmm-overlay-title">
+										<span><i class="fa-solid fa-folder-open"></i> DOSSIER</span>
+										<span class="rmm-overlay-id"><i class="fa-solid fa-id-card"></i> #<?php echo $uid; ?></span>
+									</h4>
 								
-								<div class="rmm-overlay-grid">
-									<div class="rmm-overlay-item">
-										<span class="rmm-overlay-label">Rol Preferido</span>
-										<span class="rmm-overlay-val"><?php echo esc_html( $pref_role ); ?></span>
+									<div class="rmm-overlay-roles">
+										<?php foreach ( $matched_roles as $role_label ) : ?>
+											<span class="rmm-overlay-role-badge"><?php echo esc_html( $role_label ); ?></span>
+										<?php endforeach; ?>
 									</div>
-									<div class="rmm-overlay-item">
-										<span class="rmm-overlay-label">Bajas / Muertes</span>
-										<span class="rmm-overlay-val"><?php echo "$kills / $deaths"; ?></span>
+								
+									<div class="rmm-overlay-grid">
+										<div class="rmm-overlay-item">
+											<span class="rmm-overlay-label"><i class="fa-solid fa-star"></i> Rol Preferido</span>
+											<span class="rmm-overlay-val"><?php echo esc_html( $pref_role ); ?></span>
+										</div>
+										<div class="rmm-overlay-item">
+											<span class="rmm-overlay-label"><i class="fa-solid fa-skull-crossbones"></i> Bajas / Muertes</span>
+											<span class="rmm-overlay-val"><?php echo "$kills / $deaths"; ?></span>
+										</div>
+										<div class="rmm-overlay-item">
+											<span class="rmm-overlay-label"><i class="fa-solid fa-crosshairs"></i> Precisión</span>
+											<span class="rmm-overlay-val"><?php echo $accuracy; ?></span>
+										</div>
+										<div class="rmm-overlay-item">
+											<span class="rmm-overlay-label"><i class="fa-solid fa-gun"></i> Disparos / Impactos</span>
+											<span class="rmm-overlay-val"><?php echo "$shots_fired / $shots_hit"; ?></span>
+										</div>
 									</div>
-									<div class="rmm-overlay-item">
-										<span class="rmm-overlay-label">Precisión</span>
-										<span class="rmm-overlay-val"><?php echo $accuracy; ?></span>
-									</div>
-									<div class="rmm-overlay-item">
-										<span class="rmm-overlay-label">Disparos / Impactos</span>
-										<span class="rmm-overlay-val"><?php echo "$shots_fired / $shots_hit"; ?></span>
+								
+									<div class="rmm-overlay-enrol">
+										<span class="rmm-overlay-label"><i class="fa-solid fa-calendar-check"></i> Enlistado</span>
+										<span class="rmm-overlay-val"><?php echo $enrol_date_f; ?></span>
 									</div>
 								</div>
-								
-								<div class="rmm-overlay-enrol">
-									<span class="rmm-overlay-label">Enlistado</span>
-									<span class="rmm-overlay-val"><?php echo $enrol_date_f; ?></span>
-								</div>
-							</div>
 							
-							<div class="rmm-overlay-action">
-								<span>Ver expediente completo →</span>
+								<div class="rmm-overlay-action">
+									<span><i class="fa-solid fa-arrow-right"></i> Ver expediente completo</span>
+								</div>
 							</div>
-						</div>
 					</a>
 				<?php endforeach; ?>
 			</div>
@@ -723,6 +771,37 @@ class RMM_Medals_Handler {
 					height: 15px;
 				}
 			}
+			
+			/* ── Roles Múltiples en Card ── */
+			.rmm-card-roles {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 4px;
+				justify-content: center;
+				margin-top: 2px;
+			}
+			
+			/* ── Overlay: Sección de Roles ── */
+			.rmm-overlay-roles {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 5px;
+				margin-bottom: 12px;
+				padding-bottom: 10px;
+				border-bottom: 1px solid #1f2226;
+			}
+			.rmm-overlay-role-badge {
+				display: inline-block;
+				font-size: 0.55rem;
+				font-weight: 700;
+				color: #d1d5db;
+				text-transform: uppercase;
+				letter-spacing: 0.05em;
+				padding: 2px 8px;
+				border: 1px solid #2a2d31;
+				border-radius: 3px;
+				background: rgba(255,255,255,0.03);
+			}
 		</style>
 		<?php
 		return ob_get_clean();
@@ -788,16 +867,21 @@ class RMM_Medals_Handler {
 		$kd_ratio     = number_format( $kills / ( $deaths > 0 ? $deaths : 1 ), 2 );
 		$accuracy     = $shots_fired > 0 ? number_format( ($shots_hit / $shots_fired) * 100, 1 ) . '%' : '0%';
 
-		// Obtener rol militar principal
+		// Obtener TODOS los roles del usuario
+		$target_roles = array( 'recluta', 'activo', 'baja_indefinida', 'baja_definitiva', 'expulsado' );
 		$wp_roles = wp_roles();
-		$main_role = 'visitante';
+		$matched_roles = array();
+		$first_role_slug = '';
 		foreach ( $user->roles as $r ) {
-			if ( in_array( $r, array( 'fundador', 'activo', 'recluta', 'reservista', 'veterano', 'aliado', 'administrator' ) ) ) {
-				$main_role = $r;
-				break;
+			if ( in_array( $r, $target_roles ) ) {
+				$matched_roles[] = isset( $wp_roles->role_names[$r] ) ? translate_user_role( $wp_roles->role_names[$r] ) : ucfirst($r);
+				if ( $first_role_slug === '' ) $first_role_slug = $r;
 			}
 		}
-		$role_name = isset( $wp_roles->role_names[$main_role] ) ? translate_user_role( $wp_roles->role_names[$main_role] ) : ucfirst($main_role);
+		if ( empty($matched_roles) ) {
+			$matched_roles = array( isset($wp_roles->role_names[$user->roles[0]]) ? translate_user_role($wp_roles->role_names[$user->roles[0]]) : ucfirst($user->roles[0]) );
+			$first_role_slug = $user->roles[0] ?? '';
+		}
 		
 		// Obtener historial de roles (timeline)
 		$history = get_user_meta( $user_id, 'rmm_role_history', true );
@@ -807,160 +891,300 @@ class RMM_Medals_Handler {
 
 		ob_start();
 		?>
-		<div class="rmm-operator-profile rmm-dark-theme bg-gray-950 border border-gray-900 rounded-xl p-6 md:p-8 shadow-2xl text-gray-200" style="font-family: 'Inter', sans-serif;">
+		<div class="rmm-operator-profile rmm-dark-theme" style="font-family: 'Inter', sans-serif; background: #0d1117; color: #c9d1d9; border-radius: 12px; overflow: hidden;">
 			
 			<!-- Botón volver -->
-			<div class="mb-6">
-				<a href="<?php echo esc_url($back_url); ?>" class="inline-flex items-center text-xs font-bold uppercase tracking-wider text-green-500 hover:text-green-400" style="text-decoration:none; gap:5px;">
-					⬅️ <?php _e( 'Volver al listado de miembros', 'reforger-milsim' ); ?>
+			<div style="padding: 16px 24px; border-bottom: 1px solid #21262d;">
+				<a href="<?php echo esc_url($back_url); ?>" style="text-decoration:none; color: #58a6ff; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 6px;">
+					<i class="fa-solid fa-arrow-left"></i> <?php _e( 'Volver al listado de miembros', 'reforger-milsim' ); ?>
 				</a>
 			</div>
 
-			<!-- Cabecera de Ficha Táctica -->
-			<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start mb-8 pb-8 border-b border-gray-900">
+			<!-- Cabecera de Ficha Táctica: 2 columnas -->
+			<div style="display: grid; grid-template-columns: 280px 1fr; gap: 24px; padding: 24px; border-bottom: 1px solid #21262d;">
 				
-				<!-- Avatar y Rango -->
-				<div class="flex flex-col items-center md:flex-row md:items-start lg:flex-col lg:items-center text-center md:text-left lg:text-center gap-5">
-					<?php echo get_avatar( $user_id, 140, '', '', array( 'class' => 'rounded-xl border-4 border-green-800 object-cover shadow-lg w-36 h-36' ) ); ?>
-					<div>
-						<h1 class="text-2xl font-black text-gray-100 uppercase tracking-wide mb-1 leading-tight"><?php echo esc_html( $user->display_name ); ?></h1>
-						<span class="inline-block px-3 py-1 bg-green-950 text-green-400 border border-green-800 rounded text-xs font-bold uppercase tracking-wider mb-3">
-							<?php echo esc_html( $role_name ); ?>
-						</span>
-						<div class="text-xs text-gray-500 space-y-1">
-							<div>📅 Enrolado: <strong class="text-gray-300"><?php echo $enrol_date_f; ?></strong></div>
-							<?php if ( !empty($steamid_64) ) : ?>
-								<div>🎮 SteamID: <code class="text-gray-400"><?php echo esc_html($steamid_64); ?></code></div>
-							<?php endif; ?>
-							<?php if ( !empty($bohemia_uid) ) : ?>
-								<div>🧩 Bohemia UID: <code class="text-gray-400"><?php echo esc_html($bohemia_uid); ?></code></div>
-							<?php endif; ?>
+				<!-- Columna Izquierda: Avatar + Info -->
+				<div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+					<?php 
+					$border_color = '#849b4c';
+					if ( $first_role_slug === 'expulsado' ) $border_color = '#ef4444';
+					elseif ( $first_role_slug === 'baja_definitiva' ) $border_color = '#6b7280';
+					elseif ( $first_role_slug === 'baja_indefinida' ) $border_color = '#f59e0b';
+					elseif ( $first_role_slug === 'recluta' ) $border_color = '#3b82f6';
+					elseif ( $first_role_slug === 'activo' ) $border_color = '#22c55e';
+					?>
+					<?php echo get_avatar( $user_id, 140, '', '', array( 'class' => 'rmm-profile-avatar', 'style' => 'border-radius: 8px; border: 3px solid ' . $border_color . '; object-fit: cover; width: 140px; height: 140px; box-shadow: 0 0 20px rgba(0,0,0,0.5);' ) ); ?>
+					
+					<h1 style="font-size: 1.5rem; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.03em; margin: 14px 0 8px;"><?php echo esc_html( $user->display_name ); ?></h1>
+					
+					<!-- Todos los roles como badges -->
+					<div style="display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-bottom: 14px;">
+						<?php foreach ( $matched_roles as $role_label ) : ?>
+							<span style="display: inline-block; padding: 3px 10px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid <?php echo $border_color; ?>; border-radius: 3px; color: <?php echo $border_color; ?>; background: rgba(255,255,255,0.03);"><?php echo esc_html( $role_label ); ?></span>
+						<?php endforeach; ?>
+					</div>
+					
+					<!-- SteamID y Bohemia UID -->
+					<div style="font-size: 0.7rem; color: #8b949e; display: flex; flex-direction: column; gap: 6px; width: 100%;">
+						<?php if ( !empty($steamid_64) ) : ?>
+							<div style="display: flex; align-items: center; gap: 6px; justify-content: center;">
+								<i class="fa-brands fa-steam" style="color: #58a6ff;"></i>
+								<code style="background: #161b22; padding: 2px 8px; border-radius: 3px; font-size: 0.65rem; color: #c9d1d9;"><?php echo esc_html($steamid_64); ?></code>
+							</div>
+						<?php endif; ?>
+						<?php if ( !empty($bohemia_uid) ) : ?>
+							<div style="display: flex; align-items: center; gap: 6px; justify-content: center;">
+								<i class="fa-solid fa-puzzle-piece" style="color: #58a6ff;"></i>
+								<code style="background: #161b22; padding: 2px 8px; border-radius: 3px; font-size: 0.65rem; color: #c9d1d9;"><?php echo esc_html($bohemia_uid); ?></code>
+							</div>
+						<?php endif; ?>
+						<div style="display: flex; align-items: center; gap: 6px; justify-content: center;">
+							<i class="fa-solid fa-calendar-days" style="color: #58a6ff;"></i>
+							<span style="color: #8b949e;"><?php echo $enrol_date_f; ?></span>
 						</div>
 					</div>
 				</div>
 
-				<!-- Estadísticas Tácticas de Combate (Terminal HUD) -->
-				<div class="lg:col-span-2 bg-black/60 border border-gray-900 rounded-lg p-5">
-					<h3 class="text-sm font-bold text-green-400 uppercase tracking-widest border-b border-gray-900 pb-2 mb-4">📊 DOSSIER DE COMBATE DEL OPERADOR</h3>
-					<div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+				<!-- Columna Derecha: DOSSIER DE COMBATE -->
+				<div style="background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 20px;">
+					<h3 style="font-size: 0.75rem; font-weight: 700; color: #58a6ff; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid #21262d; padding-bottom: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+						<i class="fa-solid fa-file-shield"></i> DOSSIER DE COMBATE DEL OPERADOR
+					</h3>
+					<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
 						
-						<div class="p-3 bg-gray-900/50 rounded border border-gray-900">
-							<span class="block text-[9px] uppercase tracking-wider text-gray-500 mb-1"><?php _e( 'Misiones Jugadas', 'reforger-milsim' ); ?></span>
-							<strong class="text-xl text-gray-100 font-mono"><?php echo $attendance; ?></strong>
+						<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+							<i class="fa-solid fa-flag" style="color: #58a6ff; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Misiones Jugadas', 'reforger-milsim' ); ?></span>
+							<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $attendance; ?></strong>
 						</div>
-						<div class="p-3 bg-gray-900/50 rounded border border-gray-900">
-							<span class="block text-[9px] uppercase tracking-wider text-gray-500 mb-1"><?php _e( 'Rol Preferido', 'reforger-milsim' ); ?></span>
-							<strong class="text-sm text-gray-100 block truncate" title="<?php echo esc_attr($pref_role); ?>"><?php echo esc_html( $pref_role ); ?></strong>
+						
+						<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+							<i class="fa-solid fa-star" style="color: #d2a850; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Rol Preferido', 'reforger-milsim' ); ?></span>
+							<strong style="font-size: 0.8rem; color: #fff; font-family: monospace; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?php echo esc_attr($pref_role); ?>"><?php echo esc_html( $pref_role ); ?></strong>
 						</div>
-						<div class="p-3 bg-gray-900/50 rounded border border-gray-900">
-							<span class="block text-[9px] uppercase tracking-wider text-gray-500 mb-1"><?php _e( 'Bajas / Muertes', 'reforger-milsim' ); ?></span>
-							<strong class="text-xl text-gray-100 font-mono"><?php echo "$kills / $deaths"; ?></strong>
+						
+						<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+							<i class="fa-solid fa-skull" style="color: #ef4444; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Bajas / Muertes', 'reforger-milsim' ); ?></span>
+							<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo "$kills / $deaths"; ?></strong>
 						</div>
-						<div class="p-3 bg-gray-900/50 rounded border border-gray-900">
-							<span class="block text-[9px] uppercase tracking-wider text-gray-500 mb-1"><?php _e( 'K/D Ratio', 'reforger-milsim' ); ?></span>
-							<strong class="text-xl text-gray-100 font-mono"><?php echo $kd_ratio; ?></strong>
+						
+						<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+							<i class="fa-solid fa-crosshairs" style="color: #f59e0b; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'K/D Ratio', 'reforger-milsim' ); ?></span>
+							<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $kd_ratio; ?></strong>
 						</div>
-						<div class="p-3 bg-gray-900/50 rounded border border-gray-900">
-							<span class="block text-[9px] uppercase tracking-wider text-gray-500 mb-1"><?php _e( 'Precisión', 'reforger-milsim' ); ?></span>
-							<strong class="text-xl text-gray-100 font-mono"><?php echo $accuracy; ?></strong>
+						
+						<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+							<i class="fa-solid fa-bullseye" style="color: #22c55e; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Precisión', 'reforger-milsim' ); ?></span>
+							<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $accuracy; ?></strong>
 						</div>
-						<div class="p-3 bg-gray-900/50 rounded border border-gray-900">
-							<span class="block text-[9px] uppercase tracking-wider text-gray-500 mb-1"><?php _e( 'Horas de combate', 'reforger-milsim' ); ?></span>
-							<strong class="text-xl text-gray-100 font-mono"><?php echo $hours; ?>h</strong>
+						
+						<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+							<i class="fa-solid fa-clock" style="color: #8b949e; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Horas de combate', 'reforger-milsim' ); ?></span>
+							<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $hours; ?>h</strong>
 						</div>
-						<div class="p-3 bg-gray-900/50 rounded border border-gray-900">
-							<span class="block text-[9px] uppercase tracking-wider text-gray-500 mb-1"><?php _e( 'Disparos', 'reforger-milsim' ); ?></span>
-							<strong class="text-xl text-gray-100 font-mono"><?php echo $shots_fired; ?></strong>
+						
+						<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+							<i class="fa-solid fa-gun" style="color: #c9d1d9; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Disparos', 'reforger-milsim' ); ?></span>
+							<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $shots_fired; ?></strong>
 						</div>
-						<div class="p-3 bg-gray-900/50 rounded border border-gray-900">
-							<span class="block text-[9px] uppercase tracking-wider text-gray-500 mb-1"><?php _e( 'Impactos', 'reforger-milsim' ); ?></span>
-							<strong class="text-xl text-gray-100 font-mono"><?php echo $shots_hit; ?></strong>
+						
+						<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+							<i class="fa-solid fa-explosion" style="color: #f78166; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Impactos', 'reforger-milsim' ); ?></span>
+							<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $shots_hit; ?></strong>
 						</div>
-
+						
 					</div>
 				</div>
 
 			</div>
 
-			<!-- Exposición de Condecoraciones (Exposición Grid) -->
-			<div class="mb-8">
-				<h2 class="text-lg font-black text-gray-100 uppercase tracking-wider border-b border-gray-900 pb-2.5 mb-6 flex items-center" style="gap:8px;">
-					<span>🎖️</span> <?php _e( 'EXPEDIENTE DE CONDECORACIONES Y HOJA DE SERVICIO', 'reforger-milsim' ); ?>
+			<!-- Condecoraciones -->
+			<div style="padding: 24px; border-bottom: 1px solid #21262d;">
+				<h2 style="font-size: 1rem; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #21262d; padding-bottom: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+					<i class="fa-solid fa-medal" style="color: #d2a850;"></i> <?php _e( 'EXPEDIENTE DE CONDECORACIONES Y HOJA DE SERVICIO', 'reforger-milsim' ); ?>
 				</h2>
 				
 				<?php if ( ! empty($medals) ) : ?>
-					<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+					<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">
 						<?php foreach ( $medals as $m ) : 
-							$thumb_url = get_the_post_thumbnail_url( $m->medal_id, 'medium' );
-							if ( !$thumb_url ) $thumb_url = 'https://via.placeholder.com/300x88?text=Medalla';
+							$thumb_url = get_the_post_thumbnail_url( $m->medal_id, 'metopa-militar' );
+							if ( !$thumb_url ) $thumb_url = 'https://via.placeholder.com/120x35/1a1a1a/555?text=Medalla';
+							$large_url = get_the_post_thumbnail_url( $m->medal_id, 'medium' );
+							if ( !$large_url ) $large_url = 'https://via.placeholder.com/300x88/1a1a1a/555?text=Medalla';
 							$admin_data = get_userdata( $m->otorgada_por_admin_id );
 							$admin_name = $admin_data ? $admin_data->display_name : __( 'Sistema', 'reforger-milsim' );
+							$fecha = date('d/m/Y', strtotime($m->fecha_obtenida));
 							?>
 							
-							<!-- Tarjeta de Medalla Individual (Grande) -->
-							<div class="bg-gray-900 border border-gray-800 rounded-lg p-5 flex flex-col justify-between shadow-lg">
-								<div class="text-center mb-4">
-									<a href="<?php echo esc_url( get_permalink( $m->medal_id ) ); ?>" class="block hover:scale-105 transition-transform">
-										<img src="<?php echo esc_url($thumb_url); ?>" class="w-[200px] h-[58px] mx-auto block object-cover shadow border border-gray-950" title="<?php echo esc_attr( $m->post_title ); ?>">
-									</a>
-									<h4 class="text-md font-extrabold text-gray-100 uppercase mt-3 mb-1"><?php echo esc_html( $m->post_title ); ?></h4>
-									<span class="text-[9px] uppercase tracking-wider text-gray-500 font-bold block">
-										📅 Otorgada: <?php echo date('d/m/Y', strtotime($m->fecha_obtenida)); ?>
-									</span>
-								</div>
-								
-								<div class="bg-black/40 rounded p-3 text-xs text-gray-300 border border-gray-900/50">
-									<strong class="block text-green-500 text-[9px] uppercase tracking-wider mb-1">📝 CITACIÓN OFICIAL:</strong>
-									<p class="margin-0 leading-relaxed italic">"<?php echo esc_html( $m->motivo ); ?>"</p>
-								</div>
-								
-								<div class="text-[9px] text-gray-500 uppercase tracking-widest text-right mt-3 font-semibold">
-									Otorgada por: <span class="text-gray-400"><?php echo esc_html($admin_name); ?></span>
-								</div>
+							<div class="rmm-medal-thumb" 
+								 style="background: #161b22; border: 1px solid #21262d; border-radius: 6px; padding: 8px; text-align: center; cursor: pointer; transition: all 0.2s ease;"
+								 data-medal-title="<?php echo esc_attr( $m->post_title ); ?>"
+								 data-medal-image="<?php echo esc_url( $large_url ); ?>"
+								 data-medal-date="<?php echo esc_attr( $fecha ); ?>"
+								 data-medal-citation="<?php echo esc_attr( $m->motivo ); ?>"
+								 data-medal-awarded-by="<?php echo esc_attr( $admin_name ); ?>">
+								<img src="<?php echo esc_url($thumb_url); ?>" style="width: 120px; height: 35px; object-fit: cover; display: block; margin: 0 auto 6px; border-radius: 2px;" alt="<?php echo esc_attr( $m->post_title ); ?>">
+								<span style="font-size: 0.55rem; font-weight: 700; color: #8b949e; text-transform: uppercase; letter-spacing: 0.04em;"><?php echo esc_html( $m->post_title ); ?></span>
 							</div>
 						<?php endforeach; ?>
 					</div>
 				<?php else : ?>
-					<div class="bg-gray-900/30 border border-gray-900 border-dashed rounded-lg p-8 text-center">
-						<p class="text-gray-500 uppercase font-bold tracking-wider mb-0"><?php _e( 'El operador no tiene condecoraciones registradas.', 'reforger-milsim' ); ?></p>
+					<div style="background: #161b22; border: 1px dashed #21262d; border-radius: 8px; padding: 30px; text-align: center;">
+						<i class="fa-solid fa-ribbon" style="font-size: 2rem; color: #30363d; display: block; margin-bottom: 10px;"></i>
+						<p style="color: #8b949e; text-transform: uppercase; font-weight: 700; letter-spacing: 0.06em; font-size: 0.75rem; margin: 0;"><?php _e( 'El operador no tiene condecoraciones registradas.', 'reforger-milsim' ); ?></p>
 					</div>
 				<?php endif; ?>
 			</div>
 
-			<!-- Historial de Carrera Militar (Timeline de roles) -->
-			<div>
-				<h2 class="text-lg font-black text-gray-100 uppercase tracking-wider border-b border-gray-900 pb-2.5 mb-6 flex items-center" style="gap:8px;">
-					<span>📅</span> <?php _e( 'CRONOLOGÍA DE CARRERA EN EL CLAN', 'reforger-milsim' ); ?>
+			<!-- Timeline de Carrera -->
+			<div style="padding: 24px;">
+				<h2 style="font-size: 1rem; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #21262d; padding-bottom: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+					<i class="fa-solid fa-timeline" style="color: #22c55e;"></i> <?php _e( 'CRONOLOGÍA DE CARRERA EN EL CLAN', 'reforger-milsim' ); ?>
 				</h2>
 
 				<?php if ( ! empty($history) && is_array($history) ) : ?>
-					<div class="relative border-l border-green-800/40 ml-4 pl-6 space-y-6">
+					<div style="position: relative; border-left: 2px solid rgba(34,197,94,0.25); margin-left: 16px; padding-left: 24px; display: flex; flex-direction: column; gap: 20px;">
 						<?php foreach ( array_reverse($history) as $change ) : ?>
-							<div class="relative">
-								<!-- Punto en el timeline -->
-								<span class="absolute -left-[31px] top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-gray-950 border border-green-500">
-									<span class="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+							<div style="position: relative;">
+								<span style="position: absolute; left: -29px; top: 2px; display: flex; width: 14px; height: 14px; align-items: center; justify-content: center; border-radius: 50%; background: #0d1117; border: 2px solid #22c55e;">
+									<span style="width: 6px; height: 6px; border-radius: 50%; background: #22c55e;"></span>
 								</span>
-								<div class="text-xs">
-									<strong class="text-green-500 block font-mono text-[10px] tracking-wider mb-1">
-										🕒 <?php echo esc_html( date('d/m/Y - H:i', strtotime($change['date'])) ); ?>h
+								<div style="font-size: 0.75rem;">
+									<strong style="color: #22c55e; display: block; font-family: monospace; font-size: 0.6rem; letter-spacing: 0.05em; margin-bottom: 4px;">
+										<i class="fa-solid fa-clock" style="margin-right: 4px;"></i> <?php echo esc_html( date('d/m/Y - H:i', strtotime($change['date'])) ); ?>h
 									</strong>
-									<span class="text-gray-300">
+									<span style="color: #c9d1d9;">
 										<?php if ( ! empty($change['from']) ) : ?>
-											Promoción de rango: de <code class="text-gray-400 bg-gray-900 px-1 py-0.5 rounded"><?php echo esc_html($change['from']); ?></code> a <code class="text-green-400 bg-green-950/40 px-1 py-0.5 rounded border border-green-900/30"><?php echo esc_html($change['to']); ?></code>.
+											Promoción de rango: de <code style="background: #161b22; padding: 1px 6px; border-radius: 3px; color: #8b949e;"><?php echo esc_html($change['from']); ?></code> a <code style="background: rgba(34,197,94,0.1); padding: 1px 6px; border-radius: 3px; color: #22c55e; border: 1px solid rgba(34,197,94,0.2);"><?php echo esc_html($change['to']); ?></code>.
 										<?php else : ?>
-											Ingreso al clan con rango <code class="text-green-400 bg-green-950/40 px-1 py-0.5 rounded border border-green-900/30"><?php echo esc_html($change['to']); ?></code>.
+											Ingreso al clan con rango <code style="background: rgba(34,197,94,0.1); padding: 1px 6px; border-radius: 3px; color: #22c55e; border: 1px solid rgba(34,197,94,0.2);"><?php echo esc_html($change['to']); ?></code>.
 										<?php endif; ?>
 									</span>
-									<span class="block text-[10px] text-gray-600 uppercase tracking-wider mt-1">Autorizado por: <?php echo esc_html($change['by']); ?></span>
+									<span style="display: block; font-size: 0.6rem; color: #484f58; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">Autorizado por: <?php echo esc_html($change['by']); ?></span>
 								</div>
 							</div>
 						<?php endforeach; ?>
 					</div>
 				<?php else : ?>
-					<p class="text-gray-500 text-xs italic"><?php _e( 'No hay registros de cambios de rango en la hoja de servicio.', 'reforger-milsim' ); ?></p>
+					<p style="color: #8b949e; font-size: 0.75rem; font-style: italic;"><?php _e( 'No hay registros de cambios de rango en la hoja de servicio.', 'reforger-milsim' ); ?></p>
 				<?php endif; ?>
 			</div>
+
+			<!-- Popup Modal de Medalla (oculto por defecto) -->
+			<div id="rmm-medal-popup-overlay" class="rmm-medal-popup-overlay" style="display: none;">
+				<div class="rmm-medal-popup">
+					<button class="rmm-medal-popup-close" id="rmm-medal-popup-close">
+						<i class="fa-solid fa-xmark"></i>
+					</button>
+					<img id="rmm-medal-popup-img" src="" style="width: 300px; height: 88px; object-fit: cover; display: block; margin: 0 auto 16px; border-radius: 4px; border: 1px solid #30363d;" alt="">
+					<h3 id="rmm-medal-popup-title" style="font-size: 1.1rem; font-weight: 800; color: #fff; text-align: center; text-transform: uppercase; margin: 0 0 14px;"></h3>
+					<div style="font-size: 0.75rem; color: #8b949e; display: flex; flex-direction: column; gap: 8px;">
+						<div><strong style="color: #c9d1d9;">Fecha de otorgamiento:</strong> <span id="rmm-medal-popup-date"></span></div>
+						<div><strong style="color: #c9d1d9;">Citación:</strong> <p id="rmm-medal-popup-citation" style="margin: 4px 0 0; color: #8b949e; font-style: italic; background: #0d1117; padding: 10px; border-radius: 4px; border-left: 2px solid #d2a850;"></p></div>
+						<div><strong style="color: #c9d1d9;">Otorgada por:</strong> <span id="rmm-medal-popup-awarded"></span></div>
+					</div>
+				</div>
+			</div>
+
+			<style>
+				.rmm-medal-thumb:hover {
+					border-color: #d2a850 !important;
+					box-shadow: 0 0 15px rgba(210,168,80,0.25) !important;
+					transform: translateY(-2px);
+				}
+				.rmm-medal-popup-overlay {
+					position: fixed;
+					top: 0;
+					left: 0;
+					width: 100%;
+					height: 100%;
+					background: rgba(0,0,0,0.85);
+					z-index: 9999;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					animation: rmmFadeIn 0.25s ease;
+				}
+				@keyframes rmmFadeIn {
+					from { opacity: 0; }
+					to { opacity: 1; }
+				}
+				@keyframes rmmSlideIn {
+					from { transform: translateY(-30px); opacity: 0; }
+					to { transform: translateY(0); opacity: 1; }
+				}
+				.rmm-medal-popup {
+					background: #1a1d21;
+					border: 2px solid #22c55e;
+					border-radius: 10px;
+					padding: 28px 24px;
+					max-width: 500px;
+					width: 90%;
+					position: relative;
+					box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+					animation: rmmSlideIn 0.3s ease;
+				}
+				.rmm-medal-popup-close {
+					position: absolute;
+					top: 10px;
+					right: 14px;
+					background: none;
+					border: none;
+					color: #8b949e;
+					font-size: 1.2rem;
+					cursor: pointer;
+					transition: color 0.2s;
+					padding: 4px 8px;
+					border-radius: 4px;
+				}
+				.rmm-medal-popup-close:hover {
+					color: #ef4444;
+					background: rgba(239,68,68,0.1);
+				}
+			</style>
+
+			<script>
+			(function() {
+				var overlay = document.getElementById('rmm-medal-popup-overlay');
+				var closeBtn = document.getElementById('rmm-medal-popup-close');
+				var popupImg = document.getElementById('rmm-medal-popup-img');
+				var popupTitle = document.getElementById('rmm-medal-popup-title');
+				var popupDate = document.getElementById('rmm-medal-popup-date');
+				var popupCitation = document.getElementById('rmm-medal-popup-citation');
+				var popupAwarded = document.getElementById('rmm-medal-popup-awarded');
+				
+				var thumbs = document.querySelectorAll('.rmm-medal-thumb');
+				thumbs.forEach(function(thumb) {
+					thumb.addEventListener('click', function() {
+						popupImg.src = this.getAttribute('data-medal-image');
+						popupTitle.textContent = this.getAttribute('data-medal-title');
+						popupDate.textContent = this.getAttribute('data-medal-date');
+						popupCitation.textContent = this.getAttribute('data-medal-citation');
+						popupAwarded.textContent = this.getAttribute('data-medal-awarded-by');
+						overlay.style.display = 'flex';
+					});
+				});
+				
+				function closePopup() {
+					overlay.style.display = 'none';
+				}
+				
+				closeBtn.addEventListener('click', closePopup);
+				overlay.addEventListener('click', function(e) {
+					if (e.target === overlay) closePopup();
+				});
+				document.addEventListener('keydown', function(e) {
+					if (e.key === 'Escape' && overlay.style.display === 'flex') closePopup();
+				});
+			})();
+			</script>
 
 		</div>
 		<?php
