@@ -418,6 +418,9 @@ class RMM_Admin_Page {
 			update_option( 'rmm_ptero_testing_server_id', sanitize_text_field( trim( $_POST['rmm_ptero_testing_server_id'] ) ) );
 			update_option( 'rmm_server_ip', sanitize_text_field( trim( $_POST['rmm_server_ip'] ) ) );
 						update_option( 'rmm_server_port', intval( $_POST['rmm_server_port'] ) ?: 2001 );
+									update_option( 'rmm_server_cpu_limit', intval( $_POST['rmm_server_cpu_limit'] ) ?: 800 );
+									update_option( 'rmm_server_ram_gb', intval( $_POST['rmm_server_ram_gb'] ) ?: 24 );
+									update_option( 'rmm_server_disk_gb', intval( $_POST['rmm_server_disk_gb'] ) ?: 200 );
 			update_option( 'rmm_telegram_token', sanitize_text_field( trim( $_POST['rmm_telegram_token'] ) ) );
 			update_option( 'rmm_telegram_chat_id', sanitize_text_field( trim( $_POST['rmm_telegram_chat_id'] ) ) );
 			update_option( 'rmm_telegram_bot_path', sanitize_text_field( trim( $_POST['rmm_telegram_bot_path'] ) ) );
@@ -593,9 +596,33 @@ class RMM_Admin_Page {
 														<p class="description">Por defecto en Arma Reforger es <strong>2001</strong>. Se muestra como <code>IP:PUERTO</code> en los shortcodes de conexión.</p>
 													</div>
 					</div>
-				</div>
+									</div>
 
-				<!-- Section: Telegram -->
+									<!-- Sub-section: Server Capacity -->
+									<div class="rmm-section" style="margin-top: 20px;">
+										<h3><i class="fa-solid fa-gauge-high"></i> Capacidad del Servidor</h3>
+										<p class="rmm-section-desc">Configura los límites reales de hardware para calcular correctamente los porcentajes de uso en los shortcodes.</p>
+					
+										<div class="rmm-form-grid">
+											<div class="rmm-form-group">
+												<label for="rmm_server_cpu_limit">Límite de CPU (%)</label>
+												<input type="number" name="rmm_server_cpu_limit" id="rmm_server_cpu_limit" value="<?php echo esc_attr( get_option( 'rmm_server_cpu_limit', 800 ) ); ?>" class="small-text" min="100" step="100">
+												<p class="description">100% = 1 vCore. 8 vCores = <strong>800%</strong>. Este valor se obtiene automáticamente del panel Pterodactyl si está disponible.</p>
+											</div>
+											<div class="rmm-form-group">
+												<label for="rmm_server_ram_gb">RAM Total (GB)</label>
+												<input type="number" name="rmm_server_ram_gb" id="rmm_server_ram_gb" value="<?php echo esc_attr( get_option( 'rmm_server_ram_gb', 24 ) ); ?>" class="small-text" min="1" step="1">
+												<p class="description">Memoria RAM total asignada al servidor de juego.</p>
+											</div>
+											<div class="rmm-form-group">
+												<label for="rmm_server_disk_gb">Disco Total (GB)</label>
+												<input type="number" name="rmm_server_disk_gb" id="rmm_server_disk_gb" value="<?php echo esc_attr( get_option( 'rmm_server_disk_gb', 200 ) ); ?>" class="small-text" min="1" step="1">
+												<p class="description">Espacio en disco total asignado al servidor de juego.</p>
+											</div>
+										</div>
+									</div>
+
+									<!-- Section: Telegram -->
 				<div class="rmm-section">
 					<h2>📢 Integración con Bot de Telegram</h2>
 					<p class="rmm-section-desc">Permite notificar al grupo de Telegram y sincronizar automáticamente las credenciales del Bot en el servidor.</p>
@@ -2110,32 +2137,39 @@ class RMM_Admin_Page {
 				);
 			
 				// CPU
-				var cpuPct = parseFloat(d.cpu_absolute) || 0;
+				var cpuLimit = parseFloat(d.cpu_limit) || 800;
+				var cpuAbsolute = parseFloat(d.cpu_absolute) || 0;
+				var cpuPct = cpuLimit > 0 ? Math.round((cpuAbsolute / cpuLimit) * 1000) / 10 : 0;
+				var cpuCores = (cpuAbsolute / 100).toFixed(1);
+				var cpuCoresTotal = Math.round(cpuLimit / 100);
 				var cpuColor = cpuPct > 80 ? '#ef4444' : (cpuPct > 50 ? '#f59e0b' : '#22c55e');
 				jQuery('#monitor_cpu').html(
-					'<div style="font-size:1.8rem; font-weight:800; color:' + cpuColor + '; font-family:monospace; margin-bottom:8px;">' + cpuPct.toFixed(1) + '%</div>' +
+					'<div style="font-size:1.8rem; font-weight:800; color:' + cpuColor + '; font-family:monospace; margin-bottom:4px;">' + cpuPct.toFixed(1) + '%</div>' +
+					'<div style="font-size:0.6rem; color:#484f58; margin-bottom:8px;">' + cpuCores + ' / ' + cpuCoresTotal + ' cores</div>' +
 					'<div style="background:#0d1117; border-radius:3px; height:6px;"><div style="width:' + Math.min(cpuPct,100) + '%; height:100%; background:' + cpuColor + '; border-radius:3px;"></div></div>'
 				);
 			
 				// RAM
-				var memBytes = parseInt(d.memory_bytes) || 0;
-				var memLimit = parseInt(d.memory_limit) || 1;
-				var memPct = Math.round((memBytes / memLimit) * 1000) / 10;
-				var memColor = memPct > 80 ? '#ef4444' : (memPct > 50 ? '#f59e0b' : '#22c55e');
-				jQuery('#monitor_ram').html(
-					'<div style="font-size:1.2rem; font-weight:700; color:' + memColor + '; font-family:monospace; margin-bottom:4px;">' + (d.memory_formatted || '—') + ' / ' + (d.memory_limit_formatted || '—') + '</div>' +
-					'<div style="background:#0d1117; border-radius:3px; height:6px;"><div style="width:' + Math.min(memPct,100) + '%; height:100%; background:' + memColor + '; border-radius:3px;"></div></div>'
-				);
+							var memBytes = parseInt(d.memory_bytes) || 0;
+							var memLimit = parseInt(d.memory_limit) || 0;
+							if (memLimit <= 0) memLimit = <?php echo intval( get_option( 'rmm_server_ram_gb', 24 ) ); ?> * 1024 * 1024 * 1024;
+							var memPct = memLimit > 0 ? Math.round((memBytes / memLimit) * 1000) / 10 : 0;
+							var memColor = memPct > 80 ? '#ef4444' : (memPct > 50 ? '#f59e0b' : '#22c55e');
+							jQuery('#monitor_ram').html(
+								'<div style="font-size:1.2rem; font-weight:700; color:' + memColor + '; font-family:monospace; margin-bottom:4px;">' + (d.memory_formatted || '—') + ' / ' + (d.memory_limit_formatted || '—') + '</div>' +
+								'<div style="background:#0d1117; border-radius:3px; height:6px;"><div style="width:' + Math.min(memPct,100) + '%; height:100%; background:' + memColor + '; border-radius:3px;"></div></div>'
+							);
 			
-				// Disco
-				var diskBytes = parseInt(d.disk_bytes) || 0;
-				var diskLimit = parseInt(d.disk_limit) || 1;
-				var diskPct = Math.round((diskBytes / diskLimit) * 1000) / 10;
-				var diskColor = diskPct > 80 ? '#ef4444' : (diskPct > 50 ? '#f59e0b' : '#22c55e');
-				jQuery('#monitor_disk').html(
-					'<div style="font-size:1.2rem; font-weight:700; color:' + diskColor + '; font-family:monospace; margin-bottom:4px;">' + (d.disk_formatted || '—') + ' / ' + (d.disk_limit_formatted || '—') + '</div>' +
-					'<div style="background:#0d1117; border-radius:3px; height:6px;"><div style="width:' + Math.min(diskPct,100) + '%; height:100%; background:' + diskColor + '; border-radius:3px;"></div></div>'
-				);
+							// Disco
+							var diskBytes = parseInt(d.disk_bytes) || 0;
+							var diskLimit = parseInt(d.disk_limit) || 0;
+							if (diskLimit <= 0) diskLimit = <?php echo intval( get_option( 'rmm_server_disk_gb', 200 ) ); ?> * 1024 * 1024 * 1024;
+							var diskPct = diskLimit > 0 ? Math.round((diskBytes / diskLimit) * 1000) / 10 : 0;
+							var diskColor = diskPct > 80 ? '#ef4444' : (diskPct > 50 ? '#f59e0b' : '#22c55e');
+							jQuery('#monitor_disk').html(
+								'<div style="font-size:1.2rem; font-weight:700; color:' + diskColor + '; font-family:monospace; margin-bottom:4px;">' + (d.disk_formatted || '—') + ' / ' + (d.disk_limit_formatted || '—') + '</div>' +
+								'<div style="background:#0d1117; border-radius:3px; height:6px;"><div style="width:' + Math.min(diskPct,100) + '%; height:100%; background:' + diskColor + '; border-radius:3px;"></div></div>'
+							);
 			
 				// Partida
 				jQuery('#monitor_game').html(

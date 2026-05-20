@@ -87,9 +87,9 @@ class RMM_Server_Status_Handler {
                                     ), $atts );
 
                                     $fill = ( $atts['fill'] === '1' );
+                                    $fill_id = $fill ? 'rmm-fill-' . uniqid() : '';
                                     $fill_class = $fill ? ' rmm-fill' : '';
-                                    $fill_style = $fill ? 'min-height:100%; height:auto; display:flex; flex-direction:column; flex:1 1 auto; align-self:stretch;' : '';
-                                    $fill_css = $fill ? '<style>.rmm-fill{min-height:100%!important;height:auto!important;display:flex!important;flex-direction:column!important;flex:1 1 auto!important;align-self:stretch!important}.elementor-widget-container:has(>.rmm-fill),.elementor-widget-shortcode .elementor-widget-container:has(.rmm-fill){height:100%!important;display:flex!important;flex-direction:column!important}.elementor-widget-wrap:has(.rmm-fill){height:100%!important}</style>' : '';
+                                    $fill_style = $fill ? 'box-sizing:border-box;' : '';
 
                             $data = $this->get_server_data( $atts['server_id'] );
                             if ( ! $data ) {
@@ -104,7 +104,7 @@ class RMM_Server_Status_Handler {
 
         ob_start();
         ?>
-        <div class="rmm-server-widget rmm-server-status-widget<?php echo $fill_class; ?>" style="background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 20px; font-family: 'Inter', sans-serif; color: #c9d1d9; <?php echo $fill_style; ?>">
+        <div id="<?php echo $fill_id; ?>" class="rmm-server-widget rmm-server-status-widget<?php echo $fill_class; ?>" style="background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 20px; font-family: 'Inter', sans-serif; color: #c9d1d9; <?php echo $fill_style; ?>">
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
                 <span class="<?php echo $pulse_class; ?>" style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: <?php echo $status_color; ?>; box-shadow: 0 0 12px <?php echo $status_color; ?>80;"></span>
                 <i class="<?php echo $status_icon; ?>" style="color: <?php echo $status_color; ?>; font-size: 1.5rem;"></i>
@@ -137,12 +137,51 @@ class RMM_Server_Status_Handler {
                             animation: rmmPulseOnline 2s ease-in-out infinite;
                         }
                     </style>
-                    <?php echo $fill_css; ?>
+        <?php if ( $fill ) : ?>
+        <script>
+        (function() {
+            var el = document.getElementById('<?php echo $fill_id; ?>');
+            if (!el) return;
+            
+            function stretch() {
+                // Buscar el ancestro con altura definida (contenedor de Elementor)
+                var parent = el.parentElement;
+                var maxH = 0;
+                var target = null;
+                
+                // Subir hasta 5 niveles buscando el contenedor con mayor altura
+                for (var i = 0; i < 5 && parent; i++) {
+                    var h = parent.clientHeight || parent.offsetHeight;
+                    if (h > maxH && h > 50) {
+                        maxH = h;
+                        target = parent;
+                    }
+                    parent = parent.parentElement;
+                }
+                
+                if (target && maxH > 50) {
+                    el.style.height = maxH + 'px';
+                    el.style.boxSizing = 'border-box';
+                }
+            }
+            
+            stretch();
+            window.addEventListener('resize', stretch);
+            
+            // Observar cambios en el DOM
+            if (window.ResizeObserver) {
+                var observer = new ResizeObserver(function() { stretch(); });
+                observer.observe(document.body);
+            }
+        })();
+        </script>
+        <?php endif; ?>
         <?php
         return ob_get_clean();
     }
 
     /**
+     * Render server resources shortcode
      * [rmm_server_resources] - Barras de CPU, RAM, Disco
      * Params: server_id="", show_cpu="1", show_ram="1", show_disk="1"
      */
@@ -156,9 +195,9 @@ class RMM_Server_Status_Handler {
                     ), $atts );
 
                     $fill = ( $atts['fill'] === '1' );
+                    $fill_id = $fill ? 'rmm-fill-' . uniqid() : '';
                     $fill_class = $fill ? ' rmm-fill' : '';
-                    $fill_style = $fill ? 'min-height:100%; height:auto; display:flex; flex-direction:column; flex:1 1 auto; align-self:stretch;' : '';
-                    $fill_css = $fill ? '<style>.rmm-fill{min-height:100%!important;height:auto!important;display:flex!important;flex-direction:column!important;flex:1 1 auto!important;align-self:stretch!important}.elementor-widget-container:has(>.rmm-fill),.elementor-widget-shortcode .elementor-widget-container:has(.rmm-fill){height:100%!important;display:flex!important;flex-direction:column!important}.elementor-widget-wrap:has(.rmm-fill){height:100%!important}</style>' : '';
+                    $fill_style = $fill ? 'box-sizing:border-box;' : '';
 
             $data = $this->get_server_data( $atts['server_id'] );
         if ( ! $data ) {
@@ -168,13 +207,31 @@ class RMM_Server_Status_Handler {
         $is_online = ( $data['state'] === 'running' );
         
         // Calculate percentages
-        $cpu_pct = isset( $data['cpu_absolute'] ) ? round( $data['cpu_absolute'], 1 ) : 0;
-        $mem_used = isset( $data['memory_bytes'] ) ? $data['memory_bytes'] : 0;
-        $mem_limit = isset( $data['memory_limit'] ) ? $data['memory_limit'] : 1;
-        $mem_pct = $mem_limit > 0 ? round( ( $mem_used / $mem_limit ) * 100, 1 ) : 0;
-        $disk_used = isset( $data['disk_bytes'] ) ? $data['disk_bytes'] : 0;
-        $disk_limit = isset( $data['disk_limit'] ) ? $data['disk_limit'] : 1;
-        $disk_pct = $disk_limit > 0 ? round( ( $disk_used / $disk_limit ) * 100, 1 ) : 0;
+        // Obtener límites: primero de la API, luego de las opciones del plugin, luego fallback
+        $cpu_limit = isset( $data['cpu_limit'] ) && $data['cpu_limit'] > 0 ? $data['cpu_limit'] : intval( get_option( 'rmm_server_cpu_limit', 800 ) );
+        // cpu_absolute viene en % where 100% = 1 core. Dividir por cpu_limit para % real.
+        $cpu_absolute = isset( $data['cpu_absolute'] ) ? floatval( $data['cpu_absolute'] ) : 0;
+        $cpu_pct = $cpu_limit > 0 ? round( ( $cpu_absolute / $cpu_limit ) * 100, 1 ) : 0;
+        // Mostrar también los cores usados
+        $cpu_cores_used = round( $cpu_absolute / 100, 1 );
+        $cpu_cores_total = round( $cpu_limit / 100 );
+
+        $mem_bytes = isset( $data['memory_bytes'] ) ? intval( $data['memory_bytes'] ) : 0;
+        $mem_limit = isset( $data['memory_limit'] ) ? intval( $data['memory_limit'] ) : 0;
+        // Si no hay límite de la API, usar el configurado (en GB, convertir a bytes)
+        if ( $mem_limit <= 0 ) {
+            $mem_limit_gb = intval( get_option( 'rmm_server_ram_gb', 24 ) );
+            $mem_limit = $mem_limit_gb * 1024 * 1024 * 1024;
+        }
+        $mem_pct = $mem_limit > 0 ? round( ( $mem_bytes / $mem_limit ) * 100, 1 ) : 0;
+
+        $disk_bytes = isset( $data['disk_bytes'] ) ? intval( $data['disk_bytes'] ) : 0;
+        $disk_limit = isset( $data['disk_limit'] ) ? intval( $data['disk_limit'] ) : 0;
+        if ( $disk_limit <= 0 ) {
+            $disk_limit_gb = intval( get_option( 'rmm_server_disk_gb', 200 ) );
+            $disk_limit = $disk_limit_gb * 1024 * 1024 * 1024;
+        }
+        $disk_pct = $disk_limit > 0 ? round( ( $disk_bytes / $disk_limit ) * 100, 1 ) : 0;
 
         // Color thresholds
         $cpu_color = $cpu_pct > 80 ? '#ef4444' : ( $cpu_pct > 50 ? '#f59e0b' : '#22c55e' );
@@ -183,7 +240,7 @@ class RMM_Server_Status_Handler {
 
         ob_start();
         ?>
-        <div class="rmm-server-widget rmm-server-resources-widget<?php echo $fill_class; ?>" style="background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 20px; font-family: 'Inter', sans-serif; color: #c9d1d9; <?php echo $fill_style; ?>">
+        <div id="<?php echo $fill_id; ?>" class="rmm-server-widget rmm-server-resources-widget<?php echo $fill_class; ?>" style="background: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 20px; font-family: 'Inter', sans-serif; color: #c9d1d9; <?php echo $fill_style; ?>">
             <h4 style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #8b949e; margin: 0 0 16px; display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-chart-bar" style="color: #58a6ff;"></i> <?php _e( 'Recursos del Servidor', 'reforger-milsim' ); ?>
             </h4>
@@ -192,7 +249,9 @@ class RMM_Server_Status_Handler {
             <div style="margin-bottom: 14px;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                     <span style="font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #8b949e;"><i class="fa-solid fa-microchip"></i> CPU</span>
-                    <span style="font-size: 0.65rem; font-weight: 700; color: <?php echo $cpu_color; ?>; font-family: monospace;"><?php echo $cpu_pct; ?>%</span>
+                    <span style="font-size: 0.65rem; font-weight: 700; color: <?php echo $cpu_color; ?>; font-family: monospace;">
+                        <?php echo $cpu_cores_used; ?> / <?php echo $cpu_cores_total; ?> cores (<?php echo $cpu_pct; ?>%)
+                    </span>
                 </div>
                 <div style="background: #161b22; border-radius: 3px; height: 8px; overflow: hidden;">
                     <div style="width: <?php echo min( $cpu_pct, 100 ); ?>%; height: 100%; background: <?php echo $cpu_color; ?>; border-radius: 3px; transition: width 0.6s ease;"></div>
@@ -204,7 +263,7 @@ class RMM_Server_Status_Handler {
             <div style="margin-bottom: 14px;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                     <span style="font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #8b949e;"><i class="fa-solid fa-memory"></i> RAM</span>
-                    <span style="font-size: 0.65rem; font-weight: 700; color: <?php echo $mem_color; ?>; font-family: monospace;"><?php echo $this->format_bytes( $mem_used ); ?> / <?php echo $this->format_bytes( $mem_limit ); ?></span>
+                    <span style="font-size: 0.65rem; font-weight: 700; color: <?php echo $mem_color; ?>; font-family: monospace;"><?php echo $this->format_bytes( $mem_bytes ); ?> / <?php echo $this->format_bytes( $mem_limit ); ?></span>
                 </div>
                 <div style="background: #161b22; border-radius: 3px; height: 8px; overflow: hidden;">
                     <div style="width: <?php echo min( $mem_pct, 100 ); ?>%; height: 100%; background: <?php echo $mem_color; ?>; border-radius: 3px; transition: width 0.6s ease;"></div>
@@ -216,7 +275,7 @@ class RMM_Server_Status_Handler {
             <div style="margin-bottom: 14px;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                     <span style="font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #8b949e;"><i class="fa-solid fa-hard-drive"></i> Disco</span>
-                    <span style="font-size: 0.65rem; font-weight: 700; color: <?php echo $disk_color; ?>; font-family: monospace;"><?php echo $this->format_bytes( $disk_used ); ?> / <?php echo $this->format_bytes( $disk_limit ); ?></span>
+                    <span style="font-size: 0.65rem; font-weight: 700; color: <?php echo $disk_color; ?>; font-family: monospace;"><?php echo $this->format_bytes( $disk_bytes ); ?> / <?php echo $this->format_bytes( $disk_limit ); ?></span>
                 </div>
                 <div style="background: #161b22; border-radius: 3px; height: 8px; overflow: hidden;">
                     <div style="width: <?php echo min( $disk_pct, 100 ); ?>%; height: 100%; background: <?php echo $disk_color; ?>; border-radius: 3px; transition: width 0.6s ease;"></div>
@@ -228,7 +287,45 @@ class RMM_Server_Status_Handler {
                 <p style="font-size: 0.65rem; color: #484f58; text-align: center; margin: 10px 0 0; font-style: italic;"><?php _e( 'El servidor está actualmente fuera de línea.', 'reforger-milsim' ); ?></p>
             <?php endif; ?>
         </div>
-        <?php echo $fill_css; ?>
+        <?php if ( $fill ) : ?>
+        <script>
+        (function() {
+            var el = document.getElementById('<?php echo $fill_id; ?>');
+            if (!el) return;
+            
+            function stretch() {
+                // Buscar el ancestro con altura definida (contenedor de Elementor)
+                var parent = el.parentElement;
+                var maxH = 0;
+                var target = null;
+                
+                // Subir hasta 5 niveles buscando el contenedor con mayor altura
+                for (var i = 0; i < 5 && parent; i++) {
+                    var h = parent.clientHeight || parent.offsetHeight;
+                    if (h > maxH && h > 50) {
+                        maxH = h;
+                        target = parent;
+                    }
+                    parent = parent.parentElement;
+                }
+                
+                if (target && maxH > 50) {
+                    el.style.height = maxH + 'px';
+                    el.style.boxSizing = 'border-box';
+                }
+            }
+            
+            stretch();
+            window.addEventListener('resize', stretch);
+            
+            // Observar cambios en el DOM
+            if (window.ResizeObserver) {
+                var observer = new ResizeObserver(function() { stretch(); });
+                observer.observe(document.body);
+            }
+        })();
+        </script>
+        <?php endif; ?>
         <?php return ob_get_clean();
     }
 
@@ -243,9 +340,9 @@ class RMM_Server_Status_Handler {
                                     ), $atts );
 
                                     $fill = ( $atts['fill'] === '1' );
+                                    $fill_id = $fill ? 'rmm-fill-' . uniqid() : '';
                                     $fill_class = $fill ? ' rmm-fill' : '';
-                                    $fill_style = $fill ? 'min-height:100%; height:auto; display:flex; flex-direction:column; flex:1 1 auto; align-self:stretch;' : '';
-                                    $fill_css = $fill ? '<style>.rmm-fill{min-height:100%!important;height:auto!important;display:flex!important;flex-direction:column!important;flex:1 1 auto!important;align-self:stretch!important}.elementor-widget-container:has(>.rmm-fill),.elementor-widget-shortcode .elementor-widget-container:has(.rmm-fill){height:100%!important;display:flex!important;flex-direction:column!important}.elementor-widget-wrap:has(.rmm-fill){height:100%!important}</style>' : '';
+                                    $fill_style = $fill ? 'box-sizing:border-box;' : '';
 
                             $data = $this->get_server_data( $atts['server_id'] );
                             if ( ! $data ) {

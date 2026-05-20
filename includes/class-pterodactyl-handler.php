@@ -266,23 +266,24 @@ class RMM_Pterodactyl_Handler {
 			// Get server details for limits
 			try {
 				$details = $this->get_server_details( $server_id );
-				$info['server_name'] = isset( $details['name'] ) ? $details['name'] : '';
-				$info['memory_limit'] = isset( $details['limits']['memory'] ) ? $details['limits']['memory'] : 0;
-				$info['disk_limit'] = isset( $details['limits']['disk'] ) ? $details['limits']['disk'] : 0;
-				$info['cpu_limit'] = isset( $details['limits']['cpu'] ) ? $details['limits']['cpu'] : 0;
+							$info['server_name'] = isset( $details['name'] ) ? $details['name'] : '';
+							// Pterodactyl devuelve límites en MB, convertir a bytes para consistencia
+							$info['memory_limit'] = isset( $details['limits']['memory'] ) ? intval( $details['limits']['memory'] ) * 1024 * 1024 : 0;
+							$info['disk_limit'] = isset( $details['limits']['disk'] ) ? intval( $details['limits']['disk'] ) * 1024 * 1024 : 0;
+							$info['cpu_limit'] = isset( $details['limits']['cpu'] ) ? intval( $details['limits']['cpu'] ) : 0;
 			} catch ( Exception $e ) {
 				$info['server_name'] = '';
-				$info['memory_limit'] = 0;
-				$info['disk_limit'] = 0;
-				$info['cpu_limit'] = 0;
-			}
+							$info['memory_limit'] = 0;
+							$info['disk_limit'] = 0;
+							$info['cpu_limit'] = 0;
+						}
 
-			return $info;
-		} catch ( Exception $e ) {
-			return array(
-				'state' => 'error',
-				'error' => $e->getMessage(),
-			);
+						return $info;
+					} catch ( Exception $e ) {
+						return array(
+							'state' => 'error',
+							'error' => $e->getMessage(),
+						);
 		}
 	}
 
