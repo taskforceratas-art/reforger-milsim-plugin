@@ -6,3 +6,7 @@ Thumbs.db
 node_modules/
 vendor/
 error_log
+._*
+
+# Credenciales de despliegue (SFTP + GitHub)
+.credentials
