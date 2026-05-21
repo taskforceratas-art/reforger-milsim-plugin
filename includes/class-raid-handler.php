@@ -610,4 +610,112 @@ class RMM_Raid_Handler {
 					),
 				));
 			}
+
+	/**
+	 * Shortcode [raid_apuntarse] - Botón de apuntarse/desapuntarse
+	 */
+	public function render_raid_join_button( $atts ) {
+		if ( ! is_singular( 'raid_eventos' ) ) return '';
+		if ( ! is_user_logged_in() ) {
+			return '<div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:16px;text-align:center;color:#8b949e;font-family:sans-serif;margin:20px 0;"><i class="fa-solid fa-lock"></i> ' . __( 'Inicia sesión para apuntarte.', 'reforger-milsim' ) . '</div>';
 		}
+
+		$post_id = get_the_ID();
+		$user_id = get_current_user_id();
+		$participants = get_post_meta( $post_id, 'raid_participantes', true ) ?: array();
+		$is_joined = isset( $participants[ $user_id ] );
+		$count = count( $participants );
+		$estado = get_post_meta( $post_id, 'raid_estado', true );
+		$is_active = ( $estado === 'activa' );
+
+		ob_start();
+		?>
+		<div class="rmm-raid-join-widget" style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:20px;font-family:'Inter',sans-serif;color:#c9d1d9;margin:20px 0;">
+			<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+				<span style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:#8b949e;">
+					<i class="fa-solid fa-users"></i> <?php _e( 'Participantes', 'reforger-milsim' ); ?>: 
+					<strong style="color:#CFDC35;font-size:1.1rem;"><?php echo $count; ?></strong>
+				</span>
+				<?php if ( $is_active && ! $is_joined ) : ?>
+					<button id="rmm-raid-join-btn" data-raid="<?php echo $post_id; ?>" style="background:#CFDC35;color:#000;border:none;border-radius:6px;padding:10px 20px;font-weight:700;cursor:pointer;text-transform:uppercase;font-size:0.8rem;">
+						<i class="fa-solid fa-check"></i> <?php _e( 'Apuntarme', 'reforger-milsim' ); ?>
+					</button>
+				<?php elseif ( $is_active && $is_joined ) : ?>
+					<button id="rmm-raid-leave-btn" data-raid="<?php echo $post_id; ?>" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:10px 20px;font-weight:700;cursor:pointer;text-transform:uppercase;font-size:0.8rem;">
+						<i class="fa-solid fa-xmark"></i> <?php _e( 'Desapuntarme', 'reforger-milsim' ); ?>
+					</button>
+				<?php else : ?>
+					<span style="background:#30363d;color:#8b949e;border-radius:6px;padding:10px 20px;font-weight:700;font-size:0.8rem;text-transform:uppercase;">
+						<?php echo $estado === 'cancelada' ? '🚫 Cancelada' : '✅ Finalizada'; ?>
+					</span>
+				<?php endif; ?>
+			</div>
+			<div style="margin-top:16px;">
+				<?php if ( ! empty( $participants ) ) : ?>
+					<div style="display:flex;flex-wrap:wrap;gap:6px;">
+						<?php foreach ( $participants as $uid => $name ) : 
+							$p_user = get_userdata( $uid );
+							$display = $p_user ? $p_user->display_name : $name;
+						?>
+							<span style="display:inline-flex;align-items:center;gap:4px;background:#161b22;border:1px solid #21262d;border-radius:20px;padding:4px 12px;font-size:0.7rem;color:#e5e7eb;">
+								<?php echo get_avatar( $uid, 20, '', '', array( 'style' => 'border-radius:50%;width:20px;height:20px;' ) ); ?>
+								<?php echo esc_html( $display ); ?>
+							</span>
+						<?php endforeach; ?>
+					</div>
+				<?php else : ?>
+					<p style="font-size:0.7rem;color:#484f58;"><?php _e( 'Nadie se ha apuntado todavía.', 'reforger-milsim' ); ?></p>
+				<?php endif; ?>
+			</div>
+		</div>
+		<?php if ( $is_active ) : ?>
+		<script>
+		jQuery(document).ready(function($) {
+			$('#rmm-raid-join-btn').on('click', function() {
+				var btn = $(this); var raidId = btn.data('raid');
+				btn.prop('disabled', true).text('...');
+				$.post('<?php echo admin_url("admin-ajax.php"); ?>', {
+					action: 'rmm_raid_join', raid_id: raidId,
+					_ajax_nonce: '<?php echo wp_create_nonce("rmm_raid_join"); ?>'
+				}, function(r) { if (r.success) location.reload(); else alert(r.data || 'Error'); });
+			});
+			$('#rmm-raid-leave-btn').on('click', function() {
+				var btn = $(this); var raidId = btn.data('raid');
+				btn.prop('disabled', true).text('...');
+				$.post('<?php echo admin_url("admin-ajax.php"); ?>', {
+					action: 'rmm_raid_leave', raid_id: raidId,
+					_ajax_nonce: '<?php echo wp_create_nonce("rmm_raid_leave"); ?>'
+				}, function(r) { if (r.success) location.reload(); else alert(r.data || 'Error'); });
+			});
+		});
+		</script>
+		<?php endif; ?>
+		<?php
+		return ob_get_clean();
+	}
+
+	public function ajax_raid_join() {
+		check_ajax_referer( 'rmm_raid_join' );
+		$uid = get_current_user_id();
+		if ( ! $uid ) wp_send_json_error( 'Debes iniciar sesión.' );
+		$raid_id = intval( $_POST['raid_id'] );
+		$parts = get_post_meta( $raid_id, 'raid_participantes', true ) ?: array();
+		if ( isset( $parts[ $uid ] ) ) wp_send_json_error( 'Ya estás apuntado.' );
+		$user = wp_get_current_user();
+		$parts[ $uid ] = $user->display_name;
+		update_post_meta( $raid_id, 'raid_participantes', $parts );
+		wp_send_json_success( 'Apuntado.' );
+	}
+
+	public function ajax_raid_leave() {
+		check_ajax_referer( 'rmm_raid_leave' );
+		$uid = get_current_user_id();
+		if ( ! $uid ) wp_send_json_error( 'Debes iniciar sesión.' );
+		$raid_id = intval( $_POST['raid_id'] );
+		$parts = get_post_meta( $raid_id, 'raid_participantes', true ) ?: array();
+		if ( ! isset( $parts[ $uid ] ) ) wp_send_json_error( 'No estás apuntado.' );
+		unset( $parts[ $uid ] );
+		update_post_meta( $raid_id, 'raid_participantes', $parts );
+		wp_send_json_success( 'Desapuntado.' );
+	}
+}
