@@ -25,9 +25,11 @@ class RMM_Roles_Handler {
 		// Registro automático de cambio de roles
 		add_action( 'set_user_role', array( $this, 'log_role_change' ), 10, 3 );
 		
-		// AJAX para ocultar/mostrar entradas del timeline desde admin
+		// AJAX para el gestor de timeline desde admin
 		add_action( 'wp_ajax_rmm_toggle_timeline_entry', array( $this, 'ajax_toggle_timeline_entry' ) );
-		add_action( 'admin_footer', array( $this, 'inject_timeline_toggle_js' ) );
+		add_action( 'wp_ajax_rmm_add_timeline_entry', array( $this, 'ajax_add_timeline_entry' ) );
+		add_action( 'wp_ajax_rmm_delete_timeline_entry', array( $this, 'ajax_delete_timeline_entry' ) );
+		add_action( 'admin_footer', array( $this, 'inject_timeline_js' ) );
 	}
 
 	public function register_roles() {
@@ -236,71 +238,74 @@ class RMM_Roles_Handler {
 			</tr>
 		</table>
 
-		<h3><?php _e( 'Cronología de Carrera Militar', 'reforger-milsim' ); ?></h3>
-		<?php if ( ! empty( $history ) && is_array( $history ) ) : ?>
-			<div style="background:#f6f7f7; padding: 15px; border-left: 4px solid #849b4c; max-width: 800px; max-height: 350px; overflow-y: auto;">
-				<ul style="margin:0; padding-left:20px; list-style-type: square;">
-					<?php foreach ( array_reverse($history) as $index => $change ) : 
-						$entry_id = $change['date'] . '_' . $index;
-						$hidden_entries = get_user_meta( $user->ID, 'rmm_hidden_timeline', true ) ?: array();
-						$is_hidden = in_array( $entry_id, $hidden_entries );
-						$entry_type = $change['type'] ?? 'role';
-						?>
-						<li style="margin-bottom:8px; <?php echo $is_hidden ? 'opacity:0.4; text-decoration:line-through;' : ''; ?>">
-							<strong><?php echo esc_html( date('d/m/Y H:i', strtotime($change['date'])) ); ?></strong>:
-							<?php if ( $entry_type === 'role' || ! isset($change['type']) ) : ?>
-								<?php if ( ! empty($change['from']) ) : ?>
-									De <code><?php echo esc_html( $change['from'] ); ?></code> a 
-								<?php else : ?>
-									Asignado rol 
-								<?php endif; ?>
-								<code><?php echo esc_html( $change['to'] ?? '' ); ?></code>
-							<?php else : ?>
-								<em>[<?php echo esc_html( $entry_type ); ?>]</em> <?php echo esc_html( $change['desc'] ?? '' ); ?>
-							<?php endif; ?>
-							<span style="color:#666; font-size:0.9em;">(por <?php echo esc_html( $change['by'] ?? '' ); ?>)</span>
-							<button type="button" 
-								class="rmm-hide-timeline-btn" 
-								data-user-id="<?php echo $user->ID; ?>" 
-								data-entry-id="<?php echo esc_attr( $entry_id ); ?>"
-								title="<?php echo $is_hidden ? esc_attr__( 'Mostrar', 'reforger-milsim' ) : esc_attr__( 'Ocultar del perfil público', 'reforger-milsim' ); ?>"
-								style="margin-left:6px; background:none; border:1px solid #ccc; border-radius:3px; cursor:pointer; font-size:11px; padding:0 4px;">
-								<?php echo $is_hidden ? '👁️' : '🚫'; ?>
-							</button>
-						</li>
-					<?php endforeach; ?>
-				</ul>
-			</div>
-		<?php else : ?>
-			<p class="description"><?php _e( 'No hay registros de cambios de rol para este operador todavia.', 'reforger-milsim' ); ?></p>
-		<?php endif; ?>
+		<h3><?php _e( 'Cronologia de Carrera Militar', 'reforger-milsim' ); ?></h3>
 		
-		<!-- Formulario para añadir entrada manual -->
-		<div style="margin-top:20px; padding:15px; background:#fff; border:1px solid #ccd0d4; border-radius:4px; max-width:800px;">
-			<h4 style="margin:0 0 10px;">Anadir hecho cronologico manualmente</h4>
-			<table class="form-table" style="margin:0;">
-				<tr>
-					<th style="width:100px;"><label>Fecha</label></th>
-					<td><input type="datetime-local" name="rmm_manual_entry_date" style="width:220px;"></td>
-				</tr>
-				<tr>
-					<th><label>Tipo</label></th>
-					<td>
-						<select name="rmm_manual_entry_type" style="width:220px;">
+		<div id="rmm-timeline-manager" data-user-id="<?php echo $user->ID; ?>" style="max-width:800px;">
+			
+			<!-- Formulario rapido para añadir -->
+			<div style="background:#fff; border:1px solid #ccd0d4; border-radius:4px; padding:12px 15px; margin-bottom:15px;">
+				<div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+					<div>
+						<label style="display:block; font-weight:600; margin-bottom:2px; font-size:12px;">Fecha</label>
+						<input type="datetime-local" id="rmm-new-entry-date" style="width:200px;">
+					</div>
+					<div>
+						<label style="display:block; font-weight:600; margin-bottom:2px; font-size:12px;">Tipo</label>
+						<select id="rmm-new-entry-type" style="width:180px;">
 							<option value="event">Evento / Participacion</option>
 							<option value="promotion">Promocion / Ascenso</option>
 							<option value="training">Formacion / Curso</option>
 							<option value="award">Condecoracion / Reconocimiento</option>
 							<option value="other">Otro</option>
 						</select>
-					</td>
-				</tr>
-				<tr>
-					<th><label>Descripcion</label></th>
-					<td><input type="text" name="rmm_manual_entry_desc" style="width:100%; max-width:500px;" placeholder="Ej: Participo en la Operacion Tormenta del Desierto"></td>
-				</tr>
-			</table>
-			<p class="description" style="margin-top:8px;">Se guardara al pulsar "Actualizar usuario". Aparecera en la cronologia del perfil publico con el icono correspondiente al tipo.</p>
+					</div>
+					<div style="flex:1; min-width:200px;">
+						<label style="display:block; font-weight:600; margin-bottom:2px; font-size:12px;">Descripcion</label>
+						<input type="text" id="rmm-new-entry-desc" style="width:100%;" placeholder="Ej: Participo en la Operacion Tormenta del Desierto">
+					</div>
+					<div>
+						<button type="button" id="rmm-add-entry-btn" class="button button-primary" style="white-space:nowrap;">+ Anadir</button>
+					</div>
+				</div>
+				<div id="rmm-add-feedback" style="margin-top:8px; font-size:12px; display:none;"></div>
+			</div>
+			
+			<!-- Lista de entradas -->
+			<div id="rmm-timeline-list" style="background:#f6f7f7; padding:15px; border-left:4px solid #849b4c; max-height:400px; overflow-y:auto;">
+				<?php if ( ! empty( $history ) && is_array( $history ) ) : ?>
+					<table style="width:100%; border-collapse:collapse; font-size:13px;">
+						<?php foreach ( array_reverse($history) as $index => $change ) : 
+							$entry_id = $change['date'] . '_' . $index;
+							$hidden_entries = get_user_meta( $user->ID, 'rmm_hidden_timeline', true ) ?: array();
+							$is_hidden = in_array( $entry_id, $hidden_entries );
+							$entry_type = $change['type'] ?? 'role';
+							
+							// Texto de la entrada
+							if ( $entry_type === 'role' || ! isset($change['type']) ) {
+								if ( ! empty($change['from']) ) {
+									$entry_text = 'De ' . $change['from'] . ' a ' . ($change['to'] ?? '');
+								} else {
+									$entry_text = 'Asignado rol ' . ($change['to'] ?? '');
+								}
+							} else {
+								$entry_text = '[' . $entry_type . '] ' . ($change['desc'] ?? '');
+							}
+							?>
+							<tr data-entry-id="<?php echo esc_attr( $entry_id ); ?>" style="<?php echo $is_hidden ? 'opacity:0.4;' : ''; ?> border-bottom:1px solid #e5e5e5;">
+								<td style="padding:6px 4px; white-space:nowrap; font-weight:600; color:#555; width:110px;"><?php echo esc_html( date('d/m/Y H:i', strtotime($change['date'])) ); ?></td>
+								<td style="padding:6px 4px; <?php echo $is_hidden ? 'text-decoration:line-through;' : ''; ?>"><?php echo esc_html( $entry_text ); ?></td>
+								<td style="padding:6px 4px; color:#888; font-size:11px; white-space:nowrap;">por <?php echo esc_html( $change['by'] ?? '' ); ?></td>
+								<td style="padding:6px 4px; white-space:nowrap; text-align:right;">
+									<button type="button" class="rmm-toggle-btn button button-small" title="<?php echo $is_hidden ? 'Mostrar en perfil publico' : 'Ocultar del perfil publico'; ?>"><?php echo $is_hidden ? 'Mostrar' : 'Ocultar'; ?></button>
+									<button type="button" class="rmm-delete-btn button button-small button-link-delete" title="Eliminar permanentemente">Borrar</button>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					</table>
+				<?php else : ?>
+					<p class="description" style="margin:0;">No hay entradas en la cronologia todavia.</p>
+				<?php endif; ?>
+			</div>
 		</div>
 		<?php
 	}
@@ -390,30 +395,10 @@ class RMM_Roles_Handler {
 		}
 		
 		update_user_meta( $user_id, 'rmm_role_history', $history );
-		
-		// Guardar entrada manual de cronologia
-		$manual_date = sanitize_text_field( $_POST['rmm_manual_entry_date'] ?? '' );
-		$manual_desc = sanitize_text_field( $_POST['rmm_manual_entry_desc'] ?? '' );
-		if ( ! empty( $manual_date ) && ! empty( $manual_desc ) ) {
-			$manual_type = sanitize_text_field( $_POST['rmm_manual_entry_type'] ?? 'event' );
-			$history     = get_user_meta( $user_id, 'rmm_role_history', true ) ?: array();
-			$editor      = wp_get_current_user();
-			$editor_name = $editor ? $editor->display_name : __( 'Sistema', 'reforger-milsim' );
-			
-			$history[] = array(
-				'date' => date( 'Y-m-d H:i:s', strtotime( $manual_date ) ),
-				'type' => $manual_type,
-				'desc' => $manual_desc,
-				'by'   => $editor_name,
-			);
-			
-			update_user_meta( $user_id, 'rmm_role_history', $history );
-		}
 	}
 	
 	/**
-	 * AJAX: Alternar visibilidad de una entrada del timeline
-	 */
+	// AJAX: Alternar visibilidad de una entrada del timeline
 	public function ajax_toggle_timeline_entry() {
 		if ( ! current_user_can( 'edit_user', intval( $_POST['user_id'] ) ) ) {
 			wp_send_json_error( __( 'Permiso denegado', 'reforger-milsim' ) );
@@ -423,27 +408,120 @@ class RMM_Roles_Handler {
 		$entry_id = sanitize_text_field( $_POST['entry_id'] );
 		
 		if ( ! $user_id || empty( $entry_id ) ) {
-			wp_send_json_error( __( 'Datos inválidos', 'reforger-milsim' ) );
+			wp_send_json_error( __( 'Datos invalidos', 'reforger-milsim' ) );
 		}
 		
 		$hidden = get_user_meta( $user_id, 'rmm_hidden_timeline', true ) ?: array();
 		
 		if ( in_array( $entry_id, $hidden ) ) {
-			$hidden = array_diff( $hidden, array( $entry_id ) );
+			$hidden = array_values( array_diff( $hidden, array( $entry_id ) ) );
 			$action = 'shown';
 		} else {
 			$hidden[] = $entry_id;
 			$action = 'hidden';
 		}
 		
-		update_user_meta( $user_id, 'rmm_hidden_timeline', array_values( $hidden ) );
+		update_user_meta( $user_id, 'rmm_hidden_timeline', $hidden );
 		wp_send_json_success( array( 'action' => $action ) );
 	}
 	
 	/**
-	 * Inyectar JS para los botones de ocultar en el perfil de usuario (admin)
+	 * AJAX: Anadir entrada manual al timeline
 	 */
-	public function inject_timeline_toggle_js() {
+	public function ajax_add_timeline_entry() {
+		if ( ! current_user_can( 'edit_user', intval( $_POST['user_id'] ) ) ) {
+			wp_send_json_error( __( 'Permiso denegado', 'reforger-milsim' ) );
+		}
+		
+		$user_id = intval( $_POST['user_id'] );
+		$date    = sanitize_text_field( $_POST['date'] ?? '' );
+		$type    = sanitize_text_field( $_POST['type'] ?? 'event' );
+		$desc    = sanitize_text_field( $_POST['desc'] ?? '' );
+		
+		if ( ! $user_id || empty( $date ) || empty( $desc ) ) {
+			wp_send_json_error( __( 'Fecha y descripcion son obligatorios', 'reforger-milsim' ) );
+		}
+		
+		$history  = get_user_meta( $user_id, 'rmm_role_history', true ) ?: array();
+		$editor   = wp_get_current_user();
+		$by       = $editor ? $editor->display_name : __( 'Sistema', 'reforger-milsim' );
+		
+		$history[] = array(
+			'date' => date( 'Y-m-d H:i:s', strtotime( $date ) ),
+			'type' => $type,
+			'desc' => $desc,
+			'by'   => $by,
+		);
+		
+		update_user_meta( $user_id, 'rmm_role_history', $history );
+		
+		// Devolver el HTML de la nueva entrada
+		$index    = count( $history ) - 1;
+		$entry_id = $history[ $index ]['date'] . '_' . $index;
+		$type_label = array(
+			'event' => 'Evento', 'promotion' => 'Promocion', 'training' => 'Formacion',
+			'award' => 'Reconocimiento', 'other' => 'Otro'
+		);
+		$entry_text = '[' . ( $type_label[$type] ?? $type ) . '] ' . $desc;
+		
+		ob_start();
+		?>
+		<tr data-entry-id="<?php echo esc_attr( $entry_id ); ?>" style="border-bottom:1px solid #e5e5e5;">
+			<td style="padding:6px 4px; white-space:nowrap; font-weight:600; color:#555; width:110px;"><?php echo esc_html( date('d/m/Y H:i', strtotime($date)) ); ?></td>
+			<td style="padding:6px 4px;"><?php echo esc_html( $entry_text ); ?></td>
+			<td style="padding:6px 4px; color:#888; font-size:11px; white-space:nowrap;">por <?php echo esc_html( $by ); ?></td>
+			<td style="padding:6px 4px; white-space:nowrap; text-align:right;">
+				<button type="button" class="rmm-toggle-btn button button-small" title="Ocultar del perfil publico">Ocultar</button>
+				<button type="button" class="rmm-delete-btn button button-small button-link-delete" title="Eliminar permanentemente">Borrar</button>
+			</td>
+		</tr>
+		<?php
+		$html = ob_get_clean();
+		
+		wp_send_json_success( array( 'html' => $html, 'entry_id' => $entry_id ) );
+	}
+	
+	/**
+	 * AJAX: Eliminar una entrada del timeline
+	 */
+	public function ajax_delete_timeline_entry() {
+		if ( ! current_user_can( 'edit_user', intval( $_POST['user_id'] ) ) ) {
+			wp_send_json_error( __( 'Permiso denegado', 'reforger-milsim' ) );
+		}
+		
+		$user_id  = intval( $_POST['user_id'] );
+		$entry_id = sanitize_text_field( $_POST['entry_id'] );
+		
+		if ( ! $user_id || empty( $entry_id ) ) {
+			wp_send_json_error( __( 'Datos invalidos', 'reforger-milsim' ) );
+		}
+		
+		// Parsear el entry_id: "YYYY-MM-DD HH:MM:SS_index"
+		$parts = explode( '_', $entry_id );
+		$index = intval( array_pop( $parts ) );
+		
+		$history = get_user_meta( $user_id, 'rmm_role_history', true ) ?: array();
+		
+		if ( isset( $history[ $index ] ) ) {
+			unset( $history[ $index ] );
+			$history = array_values( $history ); // Reindexar
+			update_user_meta( $user_id, 'rmm_role_history', $history );
+			
+			// Limpiar de hidden
+			$hidden = get_user_meta( $user_id, 'rmm_hidden_timeline', true ) ?: array();
+			$hidden = array_values( array_diff( $hidden, array( $entry_id ) ) );
+			update_user_meta( $user_id, 'rmm_hidden_timeline', $hidden );
+			
+			wp_send_json_success();
+		}
+		
+		wp_send_json_error( __( 'Entrada no encontrada', 'reforger-milsim' ) );
+	}
+	
+	/**
+	 * Inyectar JS para el gestor de timeline en el perfil de usuario (admin)
+	 */
+	public function inject_timeline_js() {
 		$screen = get_current_screen();
 		if ( ! $screen || ! in_array( $screen->base, array( 'user-edit', 'profile' ) ) ) {
 			return;
@@ -451,12 +529,62 @@ class RMM_Roles_Handler {
 		?>
 		<script>
 		jQuery(document).ready(function($) {
-			$('.rmm-hide-timeline-btn').on('click', function() {
-				var btn     = $(this);
-				var userId  = btn.data('user-id');
-				var entryId = btn.data('entry-id');
+			var manager = $('#rmm-timeline-manager');
+			if ( ! manager.length ) return;
+			
+			var userId  = manager.data('user-id');
+			var list    = $('#rmm-timeline-list');
+			var feedback = $('#rmm-add-feedback');
+			
+			function showFeedback(msg, isError) {
+				feedback.text(msg).css('color', isError ? '#d63638' : '#00a32a').show().delay(3000).fadeOut();
+			}
+			
+			// === ANADIR ENTRADA ===
+			$('#rmm-add-entry-btn').on('click', function() {
+				var btn   = $(this);
+				var date  = $('#rmm-new-entry-date').val();
+				var type  = $('#rmm-new-entry-type').val();
+				var desc  = $('#rmm-new-entry-desc').val().trim();
 				
-				btn.prop('disabled', true).text('...');
+				if ( ! date || ! desc ) {
+					showFeedback('Fecha y descripcion son obligatorios', true);
+					return;
+				}
+				
+				btn.prop('disabled', true).text('Guardando...');
+				
+				$.post(ajaxurl, {
+					action: 'rmm_add_timeline_entry',
+					user_id: userId,
+					date: date,
+					type: type,
+					desc: desc
+				}, function(res) {
+					if (res.success) {
+						// Insertar al principio de la tabla
+						var table = list.find('table');
+						if ( table.length ) {
+							table.prepend(res.data.html);
+						} else {
+							list.html('<table style="width:100%; border-collapse:collapse; font-size:13px;">' + res.data.html + '</table>');
+						}
+						$('#rmm-new-entry-desc').val('');
+						showFeedback('Entrada anadida', false);
+					} else {
+						showFeedback('Error: ' + (res.data || 'Desconocido'), true);
+					}
+					btn.prop('disabled', false).text('+ Anadir');
+				});
+			});
+			
+			// === TOGGLE MOSTRAR/OCULTAR ===
+			list.on('click', '.rmm-toggle-btn', function() {
+				var btn     = $(this);
+				var row     = btn.closest('tr');
+				var entryId = row.data('entry-id');
+				
+				btn.prop('disabled', true);
 				
 				$.post(ajaxurl, {
 					action: 'rmm_toggle_timeline_entry',
@@ -464,18 +592,46 @@ class RMM_Roles_Handler {
 					entry_id: entryId
 				}, function(res) {
 					if (res.success) {
-						var li = btn.closest('li');
 						if (res.data.action === 'hidden') {
-							li.css({ opacity: 0.4, textDecoration: 'line-through' });
-							btn.html('&#x1F441;');
-							btn.attr('title', 'Mostrar');
+							row.css('opacity', '0.4');
+							row.find('td').eq(1).css('textDecoration', 'line-through');
+							btn.text('Mostrar').attr('title', 'Mostrar en perfil publico');
 						} else {
-							li.css({ opacity: 1, textDecoration: 'none' });
-							btn.html('&#x1F6AB;');
-							btn.attr('title', 'Ocultar del perfil público');
+							row.css('opacity', '1');
+							row.find('td').eq(1).css('textDecoration', 'none');
+							btn.text('Ocultar').attr('title', 'Ocultar del perfil publico');
 						}
 					}
 					btn.prop('disabled', false);
+				});
+			});
+			
+			// === BORRAR ENTRADA ===
+			list.on('click', '.rmm-delete-btn', function() {
+				var btn     = $(this);
+				var row     = btn.closest('tr');
+				var entryId = row.data('entry-id');
+				
+				if ( ! confirm('Eliminar esta entrada permanentemente?') ) return;
+				
+				btn.prop('disabled', true);
+				
+				$.post(ajaxurl, {
+					action: 'rmm_delete_timeline_entry',
+					user_id: userId,
+					entry_id: entryId
+				}, function(res) {
+					if (res.success) {
+						row.slideUp(200, function() {
+							row.remove();
+							if ( ! list.find('tr').length ) {
+								list.html('<p class="description" style="margin:0;">No hay entradas en la cronologia todavia.</p>');
+							}
+						});
+					} else {
+						alert('Error: ' + (res.data || 'No se pudo eliminar'));
+						btn.prop('disabled', false);
+					}
 				});
 			});
 		});
