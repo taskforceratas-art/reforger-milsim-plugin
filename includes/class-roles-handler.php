@@ -244,16 +244,21 @@ class RMM_Roles_Handler {
 						$entry_id = $change['date'] . '_' . $index;
 						$hidden_entries = get_user_meta( $user->ID, 'rmm_hidden_timeline', true ) ?: array();
 						$is_hidden = in_array( $entry_id, $hidden_entries );
+						$entry_type = $change['type'] ?? 'role';
 						?>
 						<li style="margin-bottom:8px; <?php echo $is_hidden ? 'opacity:0.4; text-decoration:line-through;' : ''; ?>">
 							<strong><?php echo esc_html( date('d/m/Y H:i', strtotime($change['date'])) ); ?></strong>:
-							<?php if ( ! empty($change['from']) ) : ?>
-								De <code><?php echo esc_html( $change['from'] ); ?></code> a 
+							<?php if ( $entry_type === 'role' || ! isset($change['type']) ) : ?>
+								<?php if ( ! empty($change['from']) ) : ?>
+									De <code><?php echo esc_html( $change['from'] ); ?></code> a 
+								<?php else : ?>
+									Asignado rol 
+								<?php endif; ?>
+								<code><?php echo esc_html( $change['to'] ?? '' ); ?></code>
 							<?php else : ?>
-								Asignado rol 
+								<em>[<?php echo esc_html( $entry_type ); ?>]</em> <?php echo esc_html( $change['desc'] ?? '' ); ?>
 							<?php endif; ?>
-							<code><?php echo esc_html( $change['to'] ); ?></code> 
-							<span style="color:#666; font-size:0.9em;">(por <?php echo esc_html( $change['by'] ); ?>)</span>
+							<span style="color:#666; font-size:0.9em;">(por <?php echo esc_html( $change['by'] ?? '' ); ?>)</span>
 							<button type="button" 
 								class="rmm-hide-timeline-btn" 
 								data-user-id="<?php echo $user->ID; ?>" 
@@ -267,8 +272,36 @@ class RMM_Roles_Handler {
 				</ul>
 			</div>
 		<?php else : ?>
-			<p class="description"><?php _e( 'No hay registros de cambios de rol para este operador todavía.', 'reforger-milsim' ); ?></p>
+			<p class="description"><?php _e( 'No hay registros de cambios de rol para este operador todavia.', 'reforger-milsim' ); ?></p>
 		<?php endif; ?>
+		
+		<!-- Formulario para añadir entrada manual -->
+		<div style="margin-top:20px; padding:15px; background:#fff; border:1px solid #ccd0d4; border-radius:4px; max-width:800px;">
+			<h4 style="margin:0 0 10px;">Anadir hecho cronologico manualmente</h4>
+			<table class="form-table" style="margin:0;">
+				<tr>
+					<th style="width:100px;"><label>Fecha</label></th>
+					<td><input type="datetime-local" name="rmm_manual_entry_date" style="width:220px;"></td>
+				</tr>
+				<tr>
+					<th><label>Tipo</label></th>
+					<td>
+						<select name="rmm_manual_entry_type" style="width:220px;">
+							<option value="event">Evento / Participacion</option>
+							<option value="promotion">Promocion / Ascenso</option>
+							<option value="training">Formacion / Curso</option>
+							<option value="award">Condecoracion / Reconocimiento</option>
+							<option value="other">Otro</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<th><label>Descripcion</label></th>
+					<td><input type="text" name="rmm_manual_entry_desc" style="width:100%; max-width:500px;" placeholder="Ej: Participo en la Operacion Tormenta del Desierto"></td>
+				</tr>
+			</table>
+			<p class="description" style="margin-top:8px;">Se guardara al pulsar "Actualizar usuario". Aparecera en la cronologia del perfil publico con el icono correspondiente al tipo.</p>
+		</div>
 		<?php
 	}
 
@@ -357,6 +390,25 @@ class RMM_Roles_Handler {
 		}
 		
 		update_user_meta( $user_id, 'rmm_role_history', $history );
+		
+		// Guardar entrada manual de cronologia
+		$manual_date = sanitize_text_field( $_POST['rmm_manual_entry_date'] ?? '' );
+		$manual_desc = sanitize_text_field( $_POST['rmm_manual_entry_desc'] ?? '' );
+		if ( ! empty( $manual_date ) && ! empty( $manual_desc ) ) {
+			$manual_type = sanitize_text_field( $_POST['rmm_manual_entry_type'] ?? 'event' );
+			$history     = get_user_meta( $user_id, 'rmm_role_history', true ) ?: array();
+			$editor      = wp_get_current_user();
+			$editor_name = $editor ? $editor->display_name : __( 'Sistema', 'reforger-milsim' );
+			
+			$history[] = array(
+				'date' => date( 'Y-m-d H:i:s', strtotime( $manual_date ) ),
+				'type' => $manual_type,
+				'desc' => $manual_desc,
+				'by'   => $editor_name,
+			);
+			
+			update_user_meta( $user_id, 'rmm_role_history', $history );
+		}
 	}
 	
 	/**

@@ -898,13 +898,26 @@ class RMM_Medals_Handler {
 				if ( in_array( $entry_id, $hidden_entries ) ) continue;
 				
 				$timestamp = strtotime( $change['date'] ?? 'now' );
-				$timeline[] = array(
-					'date'      => $timestamp,
-					'type'      => 'role',
-					'from'      => $change['from'] ?? '',
-					'to'        => $change['to'] ?? '',
-					'author'    => $change['by'] ?? __( 'Sistema', 'reforger-milsim' ),
-				);
+				
+				// Detectar tipo de entrada: role, manual, medal
+				if ( isset( $change['type'] ) && $change['type'] !== 'role' ) {
+					// Entrada manual con tipo especifico
+					$timeline[] = array(
+						'date'   => $timestamp,
+						'type'   => $change['type'],
+						'desc'   => $change['desc'] ?? '',
+						'author' => $change['by'] ?? __( 'Sistema', 'reforger-milsim' ),
+					);
+				} else {
+					// Cambio de rol tradicional
+					$timeline[] = array(
+						'date'   => $timestamp,
+						'type'   => 'role',
+						'from'   => $change['from'] ?? '',
+						'to'     => $change['to'] ?? '',
+						'author' => $change['by'] ?? __( 'Sistema', 'reforger-milsim' ),
+					);
+				}
 			}
 		}
 		
@@ -1096,14 +1109,26 @@ class RMM_Medals_Handler {
 					<?php if ( ! empty( $timeline ) ) : ?>
 						<div style="position: relative; border-left: 2px solid rgba(34,197,94,0.25); margin-left: 16px; padding-left: 24px; display: flex; flex-direction: column; gap: 20px;">
 							<?php foreach ( $timeline as $event ) : 
-								$is_role  = ( $event['type'] === 'role' );
-								$is_medal = ( $event['type'] === 'medal' );
-							
-								// Color del punto según tipo
-								$dot_color   = $is_role ? '#22c55e' : '#d2a850';
-								$dot_bg      = $is_role ? 'rgba(34,197,94,0.1)' : 'rgba(210,168,80,0.1)';
-								$icon        = $is_role ? 'fa-chevron-up' : 'fa-medal';
-								$label       = $is_role ? __( 'Cambio de rango', 'reforger-milsim' ) : __( 'Condecoración', 'reforger-milsim' );
+								$type = $event['type'] ?? 'role';
+								$is_role   = ( $type === 'role' );
+								$is_medal  = ( $type === 'medal' );
+								$is_manual = ! $is_role && ! $is_medal;
+								
+								// Configuracion visual segun tipo
+								$type_config = array(
+									'role'      => array( 'color' => '#22c55e', 'bg' => 'rgba(34,197,94,0.1)',  'icon' => 'fa-chevron-up', 'label' => __( 'Cambio de rango', 'reforger-milsim' ) ),
+									'medal'     => array( 'color' => '#d2a850', 'bg' => 'rgba(210,168,80,0.1)', 'icon' => 'fa-medal',      'label' => __( 'Condecoración', 'reforger-milsim' ) ),
+									'event'     => array( 'color' => '#58a6ff', 'bg' => 'rgba(88,166,255,0.1)',  'icon' => 'fa-flag',       'label' => __( 'Evento', 'reforger-milsim' ) ),
+									'promotion' => array( 'color' => '#22c55e', 'bg' => 'rgba(34,197,94,0.1)',  'icon' => 'fa-arrow-up',   'label' => __( 'Promoción', 'reforger-milsim' ) ),
+									'training'  => array( 'color' => '#a371f7', 'bg' => 'rgba(163,113,247,0.1)', 'icon' => 'fa-graduation-cap', 'label' => __( 'Formación', 'reforger-milsim' ) ),
+									'award'     => array( 'color' => '#d2a850', 'bg' => 'rgba(210,168,80,0.1)', 'icon' => 'fa-award',      'label' => __( 'Reconocimiento', 'reforger-milsim' ) ),
+									'other'     => array( 'color' => '#8b949e', 'bg' => 'rgba(139,148,158,0.1)', 'icon' => 'fa-circle',     'label' => __( 'Otro', 'reforger-milsim' ) ),
+								);
+								$cfg  = $type_config[ $type ] ?? $type_config['other'];
+								$dot_color = $cfg['color'];
+								$dot_bg    = $cfg['bg'];
+								$icon      = $cfg['icon'];
+								$label     = $cfg['label'];
 								?>
 								<div style="position: relative;">
 									<span style="position: absolute; left: -29px; top: 2px; display: flex; width: 14px; height: 14px; align-items: center; justify-content: center; border-radius: 50%; background: #0d1117; border: 2px solid <?php echo $dot_color; ?>;">
@@ -1125,12 +1150,12 @@ class RMM_Medals_Handler {
 										<?php if ( $is_role ) : ?>
 											<span style="color: #c9d1d9;">
 												<?php if ( ! empty( $event['from'] ) ) : ?>
-													Promoción: de <code style="background: #161b22; padding: 1px 6px; border-radius: 3px; color: #8b949e;"><?php echo esc_html( $event['from'] ); ?></code> a <code style="background: rgba(34,197,94,0.1); padding: 1px 6px; border-radius: 3px; color: #22c55e; border: 1px solid rgba(34,197,94,0.2);"><?php echo esc_html( $event['to'] ); ?></code>.
+													Promocion: de <code style="background: #161b22; padding: 1px 6px; border-radius: 3px; color: #8b949e;"><?php echo esc_html( $event['from'] ); ?></code> a <code style="background: rgba(34,197,94,0.1); padding: 1px 6px; border-radius: 3px; color: #22c55e; border: 1px solid rgba(34,197,94,0.2);"><?php echo esc_html( $event['to'] ); ?></code>.
 												<?php else : ?>
 													Ingreso al clan con rango <code style="background: rgba(34,197,94,0.1); padding: 1px 6px; border-radius: 3px; color: #22c55e; border: 1px solid rgba(34,197,94,0.2);"><?php echo esc_html( $event['to'] ); ?></code>.
 												<?php endif; ?>
 											</span>
-										<?php else : ?>
+										<?php elseif ( $is_medal ) : ?>
 											<div style="display: flex; align-items: center; gap: 10px; background: rgba(210,168,80,0.05); border: 1px solid rgba(210,168,80,0.15); border-radius: 6px; padding: 10px 12px;">
 												<?php 
 												$thumb_url = get_the_post_thumbnail_url( $event['medal_id'], 'metopa-militar' );
@@ -1144,10 +1169,20 @@ class RMM_Medals_Handler {
 													<?php endif; ?>
 												</div>
 											</div>
+										<?php else : ?>
+											<span style="color: #c9d1d9;"><?php echo esc_html( $event['desc'] ?? '' ); ?></span>
 										<?php endif; ?>
 									
 										<span style="display: block; font-size: 0.6rem; color: #484f58; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 6px;">
-											<?php echo $is_role ? __( 'Autorizado por:', 'reforger-milsim' ) : __( 'Otorgada por:', 'reforger-milsim' ); ?> <?php echo esc_html( $event['author'] ); ?>
+											<?php 
+											if ( $is_role ) {
+												echo __( 'Autorizado por:', 'reforger-milsim' );
+											} elseif ( $is_medal ) {
+												echo __( 'Otorgada por:', 'reforger-milsim' );
+											} else {
+												echo __( 'Registrado por:', 'reforger-milsim' );
+											}
+											?> <?php echo esc_html( $event['author'] ); ?>
 										</span>
 									</div>
 								</div>
