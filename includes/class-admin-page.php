@@ -637,7 +637,7 @@ class RMM_Admin_Page {
 																																						</div>
 																																						<div class="rmm-form-group">
 																																							<label for="rmm_raid_telegram_token">Token del Bot de RAIDs</label>
-																																							<input type="password" name="rmm_raid_telegram_token" id="rmm_raid_telegram_token" value="<?php echo esc_attr( get_option( 'rmm_raid_telegram_token', '' ) ); ?>" class="regular-text" placeholder="Token del bot @raidsratasdelaestrada_bot">
+																																							<input type="text" name="rmm_raid_telegram_token" id="rmm_raid_telegram_token" value="<?php echo esc_attr( get_option( 'rmm_raid_telegram_token', '' ) ); ?>" class="regular-text" placeholder="Token del bot @raidsratasdelaestrada_bot">
 																																							<p class="description">Bot de Telegram específico para notificaciones de RAID. Distinto del bot principal de avisos.</p>
 																																						</div>
 																																						<div class="rmm-form-group">
