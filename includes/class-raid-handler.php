@@ -323,7 +323,7 @@ class RMM_Raid_Handler {
 
 					// URL base para confirmación (web) — página de la raid
 									$site_url = get_site_url();
-									$raid_url = get_permalink( $post_id );
+									$raid_url = get_permalink( $post_id ) . '?tg_confirm=1';
 
 					$args = array(
 						'method'    => 'POST',
@@ -617,23 +617,39 @@ class RMM_Raid_Handler {
 					}
 
 			// Verificar rol permitido
-			$user = wp_get_current_user();
-			$allowed_roles = array( 'recluta', 'activo', 'aliado', 'reservista', 'baja_indefinida', 'administrator' );
-			if ( ! array_intersect( $allowed_roles, (array) $user->roles ) ) {
-				return '<div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:16px;text-align:center;color:#8b949e;font-family:sans-serif;margin:20px 0;"><i class="fa-solid fa-shield-halved"></i> ' . __( 'No tienes rango suficiente para apuntarte.', 'reforger-milsim' ) . '</div>';
-			}
+					$user = wp_get_current_user();
+					$allowed_roles = array( 'recluta', 'activo', 'aliado', 'reservista', 'baja_indefinida', 'administrator' );
+					if ( ! array_intersect( $allowed_roles, (array) $user->roles ) ) {
+						return '<div style="background:#161b22;border:1px solid #21262d;border-radius:8px;padding:16px;text-align:center;color:#8b949e;font-family:sans-serif;margin:20px 0;"><i class="fa-solid fa-shield-halved"></i> ' . __( 'No tienes rango suficiente para apuntarte.', 'reforger-milsim' ) . '</div>';
+					}
 
-		$post_id = get_the_ID();
+							$post_id = get_the_ID();
 		$user_id = get_current_user_id();
 		$participants = get_post_meta( $post_id, 'raid_participantes', true ) ?: array();
 		$is_joined = isset( $participants[ $user_id ] );
 		$count = count( $participants );
+
+		// Auto-apuntar si el usuario tiene Telegram ID configurado y viene del botón de Telegram
+		$telegram_id = get_user_meta( $user_id, 'rmm_telegram_id', true );
+		$auto_confirm = isset( $_GET['tg_confirm'] ) && $_GET['tg_confirm'] === '1';
+		if ( $auto_confirm && ! $is_joined && ! empty( $telegram_id ) ) {
+			$participants[ $user_id ] = $user->display_name;
+			update_post_meta( $post_id, 'raid_participantes', $participants );
+			$is_joined = true;
+			$count = count( $participants );
+		}
+
 		$estado = get_post_meta( $post_id, 'raid_estado', true );
 		$is_active = ( $estado === 'activa' );
 
-		ob_start();
-		?>
-		<div class="rmm-raid-join-widget" style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:20px;font-family:'Inter',sans-serif;color:#c9d1d9;margin:20px 0;">
+				ob_start();
+				?>
+				<?php if ( $auto_confirm && $is_joined ) : ?>
+					<div style="background:rgba(207,220,53,0.08);border:1px solid #CFDC35;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.75rem;color:#CFDC35;text-align:center;">
+						✅ ¡Te hemos reconocido por tu Telegram ID! Asistencia confirmada automáticamente.
+					</div>
+				<?php endif; ?>
+				<div class="rmm-raid-join-widget" style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:20px;font-family:'Inter',sans-serif;color:#c9d1d9;margin:20px 0;">
 			<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
 				<span style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:#8b949e;">
 					<i class="fa-solid fa-users"></i> <?php _e( 'Participantes', 'reforger-milsim' ); ?>: 
