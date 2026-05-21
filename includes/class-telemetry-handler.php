@@ -35,23 +35,31 @@ class RMM_Telemetry_Handler {
 	}
 
 	/**
-	 * Validar clave de autorización
+	 * Validar clave de autorización.
+	 * 
+	 * Prueba primero el header Authorization (estándar HTTP).
+	 * Si no se recibe (Apache/Nginx a veces lo eliminan), 
+	 * usa el header X-TFR-Token como alternativa.
 	 */
 	public function validate_auth( $request ) {
-		$auth_header = $request->get_header( 'Authorization' );
+		// Intentar obtener el token de Authorization o X-TFR-Token
+		$token = $request->get_header( 'Authorization' );
+		if ( empty( $token ) ) {
+			$token = $request->get_header( 'X-TFR-Token' );
+		}
 		
-		if ( empty( $auth_header ) ) {
+		if ( empty( $token ) ) {
 			return new WP_Error(
 				'rmm_telemetry_no_auth',
-				__( 'Authorization header requerido.', 'reforger-milsim' ),
+				__( 'Authorization o X-TFR-Token requerido.', 'reforger-milsim' ),
 				array( 'status' => 401 )
 			);
 		}
 
-		if ( $auth_header !== $this->auth_key ) {
+		if ( $token !== $this->auth_key ) {
 			return new WP_Error(
 				'rmm_telemetry_bad_auth',
-				__( 'Authorization inválida.', 'reforger-milsim' ),
+				__( 'Token inválido.', 'reforger-milsim' ),
 				array( 'status' => 403 )
 			);
 		}
