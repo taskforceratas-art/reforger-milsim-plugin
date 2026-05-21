@@ -491,9 +491,9 @@ class RMM_Raid_Handler {
 		}
 
 		/**
-		 * Procesa el POST del formulario de confirmación
-		 */
-		private function process_confirm_submit( $request ) {
+	 * Procesa el POST del formulario de confirmación
+	 */
+	private function process_confirm_submit( $request ) {
 
 				$raid_id = intval( $request->get_param( 'raid_id' ) );
 				$nombre = sanitize_text_field( $request->get_param( 'name' ) );
