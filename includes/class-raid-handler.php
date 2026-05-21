@@ -117,15 +117,15 @@ class RMM_Raid_Handler {
 
 				<!-- Botón -->
 				<button type="button" id="btn_send_raid" class="rmm-btn btn-primary" style="
-					background: linear-gradient(135deg, #CFDC35 0%, #a8b81a 100%);
-					border: none;
-					border-radius: 6px;
+					background: #101010;
+					border: 1px solid #CFDC35;
+									border-radius: 6px;
 					padding: 12px 24px;
 					font-size: 0.8rem;
 					font-weight: 700;
 					text-transform: uppercase;
 					letter-spacing: 0.05em;
-					color: #fff;
+					color: #CFDC35;
 					cursor: pointer;
 					transition: all 0.2s ease;
 					display: flex;
