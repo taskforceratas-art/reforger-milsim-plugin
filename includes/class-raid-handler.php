@@ -14,6 +14,7 @@ class RMM_Raid_Handler {
 	public function __construct() {
 		add_shortcode( 'clan_solicitar_raid', array( $this, 'render_raid_form' ) );
 		add_action( 'wp_ajax_rmm_send_raid_request', array( $this, 'ajax_send_raid_request' ) );
+		add_action( 'rest_api_init', array( $this, 'register_rest_endpoints' ) );
 	}
 
 	/**
@@ -248,9 +249,27 @@ class RMM_Raid_Handler {
 				$raid_datetime = strtotime( "$date $time" );
 				if ( $raid_datetime < $now_timestamp + 3600 ) {
 					wp_send_json_error( __( 'La hora debe ser al menos 1h desde ahora. Solo en punto o y media.', 'reforger-milsim' ) );
-		}
+					}
 
-		// Formatear fecha al estilo del bot
+					// Guardar en BD
+					global $wpdb;
+					$table = $wpdb->prefix . 'raid_solicitudes';
+					$raid_id = $wpdb->insert( $table, array(
+						'usuario_id' => get_current_user_id(),
+						'fecha'      => $date,
+						'hora'       => $time . ':00',
+						'servidor'   => $server,
+						'password'   => $password,
+						'notas'      => $notes,
+						'estado'     => 'activa',
+						'created_at' => current_time( 'mysql' ),
+					) );
+
+					if ( ! $raid_id ) {
+						wp_send_json_error( __( 'Error al guardar la solicitud.', 'reforger-milsim' ) );
+					}
+
+					// Formatear fecha al estilo del bot
 		$dt = new DateTime( $date );
 		$days = array(
 			'Monday'    => 'Lunes',
@@ -265,23 +284,22 @@ class RMM_Raid_Handler {
 		$dia_num = $dt->format('j');
 		$date_formatted = "$dia_semana $dia_num";
 
-		// Construir mensaje
-		$msg = "📢 <b>Solicitud de RAID desde la Web</b>\n\n";
+		// Construir mensaje con enlace de confirmación
+		$confirm_url = rest_url( 'clan/v1/raid/confirm' ) . '?raid_id=' . $wpdb->insert_id . '&user_id={telegram_user_id}&name={name}';
+
+		$msg = "📢 <b>¡Nueva solicitud de misión!</b>\n\n";
+		$msg .= "👤 <b>" . esc_html( $user->display_name ) . "</b> ha solicitado crear una misión.\n\n";
 		$msg .= "📅 <b>$date_formatted</b>\n";
 		$msg .= "🕒 <b>$time</b>h\n";
-		$msg .= "👤 Solicitante: <b>" . esc_html( $user->display_name ) . "</b>\n";
 
 		if ( ! empty( $server ) ) {
-			$msg .= "🏷 Servidor: <b>[=TFR=] $server</b>\n";
-		}
-		if ( ! empty( $password ) ) {
-			$msg .= "🔑 Contraseña: <code>$password</code>\n";
+			$msg .= "🏷 Servidor: <b>$server</b>\n";
 		}
 		if ( ! empty( $notes ) ) {
-			$msg .= "\n📝 <b>Notas:</b>\n" . esc_html( $notes ) . "\n";
+			$msg .= "📝 <b>Notas:</b> " . esc_html( $notes ) . "\n";
 		}
 
-		$msg .= "\n<i>Solicitud enviada desde la web de gestión.</i>";
+		$msg .= "\n<i>Confirma tu asistencia 👇</i>";
 
 		// Enviar a Telegram (bot de RAIDs)
 				try {
@@ -293,14 +311,35 @@ class RMM_Raid_Handler {
 					}
 
 					$url = "https://api.telegram.org/bot{$token}/sendMessage";
+
+					// URL base para confirmación (web)
+					$site_url = get_site_url();
+					$confirm_base = $site_url . '/wp-json/clan/v1/raid/confirm?raid_id=' . $wpdb->insert_id;
+
 					$args = array(
 						'method'    => 'POST',
 						'timeout'   => 15,
 						'sslverify' => false,
 						'body'      => array(
 							'chat_id'    => $chat_id,
-												'text'       => $msg,
-												'parse_mode' => 'HTML',
+							'text'       => $msg,
+							'parse_mode' => 'HTML',
+							'reply_markup' => json_encode(array(
+								'inline_keyboard' => array(
+									array(
+										array(
+											'text' => '✅ Confirmar asistencia',
+											'url'  => $confirm_base . '&user_id={telegram_user_id}&name={name}'
+										)
+									),
+									array(
+										array(
+											'text' => '📅 Ver en calendario',
+											'url'  => $site_url . '/calendario-de-partidas/'
+										)
+									)
+								)
+							))
 						),
 					);
 
@@ -322,5 +361,133 @@ class RMM_Raid_Handler {
 		} catch ( Exception $e ) {
 			wp_send_json_error( $e->getMessage() );
 		}
+	}
+
+	/**
+	 * Registrar endpoints REST
+	 */
+	public function register_rest_endpoints() {
+		// Endpoint para confirmar asistencia (botón de Telegram)
+		register_rest_route( 'clan/v1', '/raid/confirm', array(
+			'methods'  => 'GET',
+			'callback' => array( $this, 'handle_raid_confirm' ),
+			'permission_callback' => '__return_true',
+		));
+		
+		// Endpoint para listar raids (calendario)
+		register_rest_route( 'clan/v1', '/raids', array(
+			'methods'  => 'GET',
+			'callback' => array( $this, 'get_raids_for_calendar' ),
+			'permission_callback' => '__return_true',
+		));
+	}
+
+	/**
+	 * Maneja la confirmación de asistencia desde el botón de Telegram
+	 */
+	public function handle_raid_confirm( $request ) {
+		global $wpdb;
+		
+		$raid_id = intval( $request->get_param( 'raid_id' ) );
+		$tg_user_id = sanitize_text_field( $request->get_param( 'user_id' ) );
+		$nombre = sanitize_text_field( $request->get_param( 'name' ) );
+		
+		if ( ! $raid_id || empty( $tg_user_id ) || empty( $nombre ) ) {
+			// Mostrar página de error
+			wp_die( 'Faltan datos. Usa el botón de Telegram correctamente.', 'Error', array( 'response' => 400 ) );
+		}
+		
+		// Verificar si ya está apuntado
+		$table = $wpdb->prefix . 'raid_participantes';
+		$exists = $wpdb->get_var( $wpdb->prepare(
+			"SELECT id FROM $table WHERE raid_id = %d AND telegram_user_id = %s",
+			$raid_id, $tg_user_id
+		));
+		
+		if ( $exists ) {
+			wp_die( '✅ Ya habías confirmado tu asistencia a esta misión.', 'Ya confirmado', array( 'response' => 200 ) );
+		}
+		
+		// Guardar participación
+		$wpdb->insert( $table, array(
+			'raid_id'         => $raid_id,
+			'telegram_user_id' => $tg_user_id,
+			'telegram_username' => $nombre,
+			'nombre'           => $nombre,
+			'confirmed_at'     => current_time( 'mysql' ),
+		));
+		
+		// Contar participantes
+		$count = $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM $table WHERE raid_id = %d", $raid_id
+		));
+		
+		// Mostrar página de éxito estilizada
+		?>
+		<!DOCTYPE html>
+		<html>
+		<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+		<title>Asistencia Confirmada</title>
+		<style>
+			body { background:#0d1117; color:#c9d1d9; font-family:'Inter',sans-serif; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
+			.box { text-align:center; padding:40px; background:#161b22; border:1px solid #21262d; border-radius:12px; max-width:400px; }
+			.icon { font-size:3rem; margin-bottom:16px; }
+			h1 { font-size:1.2rem; color:#22c55e; margin:0 0 8px; }
+			p { font-size:0.9rem; color:#8b949e; margin:4px 0; }
+			.count { font-size:2rem; font-weight:800; color:#CFDC35; }
+		</style></head>
+		<body>
+		<div class="box">
+			<div class="icon">✅</div>
+			<h1>¡Asistencia confirmada!</h1>
+			<p><?php echo esc_html( $nombre ); ?>, te has apuntado a la misión.</p>
+			<p style="margin-top:16px;">👥 Participantes: <span class="count"><?php echo $count; ?></span></p>
+		</div>
+		</body>
+		</html>
+		<?php
+		exit;
+	}
+
+	/**
+	 * Devuelve las raids para el calendario FullCalendar
+	 */
+	public function get_raids_for_calendar( $request ) {
+		global $wpdb;
+		
+		$table = $wpdb->prefix . 'raid_solicitudes';
+		$parts_table = $wpdb->prefix . 'raid_participantes';
+		
+		$raids = $wpdb->get_results(
+			"SELECT r.*, 
+			 (SELECT COUNT(*) FROM $parts_table WHERE raid_id = r.id) as participantes
+			 FROM $table r 
+			 WHERE r.estado = 'activa' 
+			 ORDER BY r.fecha ASC, r.hora ASC"
+		);
+		
+		$events = array();
+		foreach ( $raids as $raid ) {
+			$user = get_userdata( $raid->usuario_id );
+			$nombre = $user ? $user->display_name : 'Desconocido';
+			
+			$events[] = array(
+				'id'        => 'raid_' . $raid->id,
+				'title'     => '🎯 RAID: ' . $nombre,
+				'start'     => $raid->fecha . 'T' . $raid->hora,
+				'color'     => '#CFDC35',
+				'textColor' => '#000',
+				'extendedProps' => array(
+					'tipo'     => 'raid',
+					'usuario'  => $nombre,
+					'servidor' => $raid->servidor,
+					'notas'    => $raid->notas,
+					'participantes' => intval( $raid->participantes ),
+					'raid_id'  => $raid->id,
+				),
+			);
+		}
+		
+		return rest_ensure_response( $events );
 	}
 }
