@@ -15,6 +15,7 @@ class RMM_Raid_Handler {
 		add_shortcode( 'clan_solicitar_raid', array( $this, 'render_raid_form' ) );
 		add_action( 'wp_ajax_rmm_send_raid_request', array( $this, 'ajax_send_raid_request' ) );
 		add_action( 'rest_api_init', array( $this, 'register_rest_endpoints' ) );
+				add_action( 'publish_eventos_partidas', array( $this, 'notify_raid_channel_on_event' ), 10, 2 );
 	}
 
 	/**
@@ -287,19 +288,28 @@ class RMM_Raid_Handler {
 		// Construir mensaje con enlace de confirmación
 		$confirm_url = rest_url( 'clan/v1/raid/confirm' ) . '?raid_id=' . $wpdb->insert_id . '&user_id={telegram_user_id}&name={name}';
 
-		$msg = "📢 <b>¡Nueva solicitud de misión!</b>\n\n";
-		$msg .= "👤 <b>" . esc_html( $user->display_name ) . "</b> ha solicitado crear una misión.\n\n";
-		$msg .= "📅 <b>$date_formatted</b>\n";
-		$msg .= "🕒 <b>$time</b>h\n";
+		$msg = "📢 <b>¡Nueva solicitud de misión!</b>
+
+";
+		$msg .= "👤 <b>" . esc_html( $user->display_name ) . "</b> ha solicitado crear una misión.
+
+";
+		$msg .= "📅 <b>$date_formatted</b>
+";
+		$msg .= "🕒 <b>$time</b>h
+";
 
 		if ( ! empty( $server ) ) {
-			$msg .= "🏷 Servidor: <b>$server</b>\n";
+			$msg .= "🏷 Servidor: <b>$server</b>
+";
 		}
 		if ( ! empty( $notes ) ) {
-			$msg .= "📝 <b>Notas:</b> " . esc_html( $notes ) . "\n";
+			$msg .= "📝 <b>Notas:</b> " . esc_html( $notes ) . "
+";
 		}
 
-		$msg .= "\n<i>Confirma tu asistencia 👇</i>";
+		$msg .= "
+<i>Confirma tu asistencia 👇</i>";
 
 		// Enviar a Telegram (bot de RAIDs)
 				try {
@@ -489,5 +499,48 @@ class RMM_Raid_Handler {
 		}
 		
 		return rest_ensure_response( $events );
-	}
-}
+			}
+
+			/**
+			 * Notifica al canal de RAIDs cuando se publica un evento oficial
+			 */
+			public function notify_raid_channel_on_event( $post_id, $post ) {
+				$token = get_option( 'rmm_raid_telegram_token', '' );
+				$chat_id = get_option( 'rmm_raid_telegram_chat_id', '-1003157817672' );
+
+				if ( empty( $token ) || empty( $chat_id ) ) return;
+
+				$fecha_inicio = get_post_meta( $post_id, 'fecha_inicio', true );
+				$fecha_fin = get_post_meta( $post_id, 'fecha_fin', true );
+
+				$dt = new DateTime( $fecha_inicio );
+				$days = array( 'Monday' => 'Lunes', 'Tuesday' => 'Martes', 'Wednesday' => 'Miércoles', 'Thursday' => 'Jueves', 'Friday' => 'Viernes', 'Saturday' => 'Sábado', 'Sunday' => 'Domingo' );
+				$dia = $days[ $dt->format('l') ] ?? $dt->format('l');
+				$hora = $dt->format('H:i');
+
+				$msg = "📢 <b>¡MISIÓN OFICIAL CREADA!</b>
+
+";
+				$msg .= "🎮 <b>" . esc_html( $post->post_title ) . "</b>
+";
+				$msg .= "📅 <b>$dia " . $dt->format('j') . "</b>
+";
+				$msg .= "🕒 <b>{$hora}h</b>
+";
+				$msg .= "
+🔗 " . get_permalink( $post_id ) . "
+";
+				$msg .= "
+<i>Reserva tu slot en la web. ¡No faltes!</i>";
+
+				wp_remote_post( "https://api.telegram.org/bot{$token}/sendMessage", array(
+					'timeout'   => 15,
+					'sslverify' => false,
+					'body'      => array(
+						'chat_id'    => $chat_id,
+						'text'       => $msg,
+						'parse_mode' => 'HTML',
+					),
+				));
+			}
+		}
