@@ -11,7 +11,7 @@
 /* ===========================================
    VARIABLES DE COLOR TÁCTICAS
    =========================================== */
-define( 'TFR_ACCENT', '#849b4c' );     // Verde oliva táctico
+define( 'TFR_ACCENT', '#CFDC35' );     // Verde oliva táctico
 define( 'TFR_DARK',  '#0d0e10' );      // Fondo principal
 define( 'TFR_CARD',  '#141619' );      // Fondo tarjeta
 define( 'TFR_BORDER','#1f2226' );      // Bordes
@@ -69,8 +69,8 @@ add_action( 'login_enqueue_scripts', function() use ( $tfr_login ) {
 					rgba(0,0,0,0.15) 4px
 				),
 				/* Grid táctico */
-				linear-gradient(rgba(132,155,76,0.03) 1px, transparent 1px),
-				linear-gradient(90deg, rgba(132,155,76,0.03) 1px, transparent 1px);
+				linear-gradient(rgba(207,220,53,0.03) 1px, transparent 1px),
+				linear-gradient(90deg, rgba(207,220,53,0.03) 1px, transparent 1px);
 			background-size: 100% 4px, 40px 40px, 40px 40px;
 			color: <?php echo TFR_TEXT; ?>;
 			font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
@@ -119,7 +119,7 @@ add_action( 'login_enqueue_scripts', function() use ( $tfr_login ) {
 			padding: 6px 20px;
 			border: 1px solid <?php echo TFR_BORDER; ?>;
 			border-radius: 3px;
-			background: rgba(132,155,76,0.05);
+			background: rgba(207,220,53,0.05);
 			margin-bottom: 5px;
 		}
 		.tfr-classification-tagline {
@@ -138,7 +138,7 @@ add_action( 'login_enqueue_scripts', function() use ( $tfr_login ) {
 			padding: 28px 24px 20px !important;
 			box-shadow:
 				0 8px 32px rgba(0,0,0,0.6),
-				0 0 0 1px rgba(132,155,76,0.08);
+				0 0 0 1px rgba(207,220,53,0.08);
 			margin-top: 0;
 		}
 
@@ -164,7 +164,7 @@ add_action( 'login_enqueue_scripts', function() use ( $tfr_login ) {
 		.login input[type="password"]:focus,
 		.login input[type="text"]:focus {
 			border-color: <?php echo TFR_ACCENT; ?> !important;
-			box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 2px rgba(132,155,76,0.2) !important;
+			box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 2px rgba(207,220,53,0.2) !important;
 			outline: none !important;
 		}
 		.login form .input::placeholder,
@@ -235,7 +235,7 @@ add_action( 'login_enqueue_scripts', function() use ( $tfr_login ) {
 		/* ── MENSAJES DE ERROR / INFO ── */
 		.login .message {
 			background: rgba(30,40,30,0.6) !important;
-			border: 1px solid rgba(132,155,76,0.3) !important;
+			border: 1px solid rgba(207,220,53,0.3) !important;
 			border-left: 3px solid <?php echo TFR_ACCENT; ?> !important;
 			color: <?php echo TFR_TEXT; ?> !important;
 			font-size: 0.75rem;
@@ -318,7 +318,7 @@ add_action( 'login_enqueue_scripts', function() use ( $tfr_login ) {
 			margin-top: 24px;
 			font-family: 'JetBrains Mono', 'SF Mono', monospace;
 			font-size: 0.6rem;
-			color: #333;
+			color: #CFDC35;
 			text-transform: uppercase;
 			letter-spacing: 0.15em;
 		}
