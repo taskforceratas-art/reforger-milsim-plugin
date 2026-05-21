@@ -152,7 +152,13 @@ class RMM_Admin_Page {
 				'description' => 'Muestra una cuadrícula táctica de miembros con su avatar, nombre, pasador y overlay táctico de estadísticas al pasar el ratón. Al hacer clic, lleva al expediente detallado.',
 				'context'     => 'Global (cualquier página)',
 				'params'      => 'profile_url="[URL_PAGINA_PERFIL]"',
-			),
+						),
+						array(
+							'shortcode'   => '[clan_solicitar_raid]',
+							'description' => 'Formulario para solicitar una RAID. Solo visible para miembros con rol Activo o Aliado. Envía una notificación a Telegram con fecha, hora, servidor y notas.',
+							'context'     => 'Global (cualquier página)',
+							'params'      => '—',
+						),
 			array(
 				'shortcode'   => '[clan_perfil_operador]',
 				'description' => 'Muestra la ficha militar completa de un operador, con su expediente de condecoraciones en tamaño grande, dossier de combate y cronología de su carrera en el clan.',
