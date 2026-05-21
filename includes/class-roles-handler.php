@@ -195,6 +195,13 @@ class RMM_Roles_Handler {
 				</td>
 			</tr>
 			<tr>
+				<th><label for="rmm_telegram_id"><?php _e( 'Telegram ID', 'reforger-milsim' ); ?></label></th>
+				<td>
+					<input type="text" name="rmm_telegram_id" id="rmm_telegram_id" value="<?php echo esc_attr( get_the_author_meta( 'rmm_telegram_id', $user->ID ) ); ?>" class="regular-text" />
+					<p class="description"><?php _e( 'ID numérico de Telegram (ej: 12345678). Se usa para auto-confirmar asistencia a RAIDs desde el bot.', 'reforger-milsim' ); ?></p>
+				</td>
+			</tr>
+			<tr>
 				<th><label for="rmm_enrolment_date"><?php _e( 'Fecha de Enrolamiento', 'reforger-milsim' ); ?></label></th>
 				<td>
 					<input type="date" name="rmm_enrolment_date" id="rmm_enrolment_date" value="<?php echo esc_attr( $enrolment_date ); ?>" class="regular-text" />
@@ -322,6 +329,9 @@ class RMM_Roles_Handler {
 		}
 		if ( isset( $_POST['bohemia_uid'] ) ) {
 			update_user_meta( $user_id, 'bohemia_uid', sanitize_text_field( $_POST['bohemia_uid'] ) );
+		}
+		if ( isset( $_POST['rmm_telegram_id'] ) ) {
+			update_user_meta( $user_id, 'rmm_telegram_id', sanitize_text_field( $_POST['rmm_telegram_id'] ) );
 		}
 		if ( isset( $_POST['rmm_enrolment_date'] ) ) {
 			update_user_meta( $user_id, 'rmm_enrolment_date', sanitize_text_field( $_POST['rmm_enrolment_date'] ) );
