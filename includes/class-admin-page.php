@@ -428,6 +428,7 @@ class RMM_Admin_Page {
 			update_option( 'rmm_steam_api_key', sanitize_text_field( trim( $_POST['rmm_steam_api_key'] ) ) );
 			update_option( 'rmm_whatsapp_phone', sanitize_text_field( trim( $_POST['rmm_whatsapp_phone'] ) ) );
 			update_option( 'rmm_whatsapp_apikey', sanitize_text_field( trim( $_POST['rmm_whatsapp_apikey'] ) ) );
+			update_option( 'rmm_telemetry_auth_key', sanitize_text_field( trim( $_POST['rmm_telemetry_auth_key'] ) ) );
 
 			// Roles
 			$role_admin  = trim( $_POST['rmm_telegram_role_admin'] );
@@ -527,6 +528,7 @@ class RMM_Admin_Page {
 		$steam_key        = get_option( 'rmm_steam_api_key' );
 		$wa_phone         = get_option( 'rmm_whatsapp_phone' );
 		$wa_key           = get_option( 'rmm_whatsapp_apikey' );
+		$telemetry_key    = get_option( 'rmm_telemetry_auth_key', 'FSuhjrSF&546VFsHYUCf·/(JHSJHGD49fD' );
 
 		$role_admin  = get_option( 'rmm_telegram_role_admin' );
 		$role_user   = get_option( 'rmm_telegram_role_user' );
@@ -700,6 +702,17 @@ class RMM_Admin_Page {
 					<div class="rmm-form-group">
 						<label for="rmm_steam_api_key">Steam Web API Key</label>
 						<input type="password" name="rmm_steam_api_key" id="rmm_steam_api_key" value="<?php echo esc_attr( $steam_key ); ?>" class="large-text" placeholder="Clave de API de Steam de 32 caracteres">
+					</div>
+				</div>
+
+				<!-- Section: Telemetry -->
+				<div class="rmm-section">
+					<h2>📡 Telemetría de Partida (Addon Reforger)</h2>
+					<p class="rmm-section-desc">Clave de autorización que usa el addon de estadísticas de Arma Reforger para enviar telemetría al endpoint <code>/wp-json/clan/v1/telemetry/push</code>.</p>
+
+					<div class="rmm-form-group">
+						<label for="rmm_telemetry_auth_key">Authorization Key</label>
+						<input type="text" name="rmm_telemetry_auth_key" id="rmm_telemetry_auth_key" value="<?php echo esc_attr( $telemetry_key ); ?>" class="large-text" placeholder="Clave secreta compartida con el addon">
 					</div>
 				</div>
 
