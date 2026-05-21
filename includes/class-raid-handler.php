@@ -299,22 +299,25 @@ class RMM_Raid_Handler {
 						'sslverify' => false,
 						'body'      => array(
 							'chat_id'    => $chat_id,
-							'text'       => wp_strip_all_tags( $msg ),
-							'parse_mode' => 'HTML',
+												'text'       => $msg,
+												'parse_mode' => 'HTML',
 						),
 					);
 
 					$response = wp_remote_post( $url, $args );
 
-					if ( is_wp_error( $response ) ) {
-						wp_send_json_error( $response->get_error_message() );
-					}
+									if ( is_wp_error( $response ) ) {
+										wp_send_json_error( $response->get_error_message() );
+									}
 
-					$code = wp_remote_retrieve_response_code( $response );
-					if ( $code === 200 ) {
-						wp_send_json_success( __( '¡Solicitud enviada al chat de RAIDs!', 'reforger-milsim' ) );
-					} else {
-						wp_send_json_error( __( 'Error al enviar a Telegram (HTTP ' . $code . '). Verifica el token y chat ID.', 'reforger-milsim' ) );
+									$code = wp_remote_retrieve_response_code( $response );
+									$body = wp_remote_retrieve_body( $response );
+									if ( $code === 200 ) {
+										wp_send_json_success( __( '¡Solicitud enviada al chat de RAIDs!', 'reforger-milsim' ) );
+									} else {
+										$err = json_decode( $body, true );
+										$err_msg = isset( $err['description'] ) ? $err['description'] : "HTTP $code";
+										wp_send_json_error( __( 'Error Telegram: ' . $err_msg, 'reforger-milsim' ) );
 					}
 		} catch ( Exception $e ) {
 			wp_send_json_error( $e->getMessage() );
