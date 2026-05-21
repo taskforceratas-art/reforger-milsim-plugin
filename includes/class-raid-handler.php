@@ -308,11 +308,6 @@ class RMM_Raid_Handler {
 		}
 
 		$msg .= "\n<i>Confirma tu asistencia 👇</i>";
-";
-		}
-
-		$msg .= "
-<i>Confirma tu asistencia 👇</i>";
 
 		// Enviar a Telegram (bot de RAIDs)
 				try {
