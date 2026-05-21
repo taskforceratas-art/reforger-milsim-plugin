@@ -981,20 +981,8 @@ class RMM_Medals_Handler {
 						<?php endforeach; ?>
 					</div>
 					
-					<!-- SteamID y Bohemia UID -->
+					<!-- Fecha de enrolamiento -->
 					<div style="font-size: 0.7rem; color: #8b949e; display: flex; flex-direction: column; gap: 6px; width: 100%;">
-						<?php if ( !empty($steamid_64) ) : ?>
-							<div style="display: flex; align-items: center; gap: 6px; justify-content: center;">
-								<i class="fa-brands fa-steam" style="color: #58a6ff;"></i>
-								<code style="background: #161b22; padding: 2px 8px; border-radius: 3px; font-size: 0.65rem; color: #c9d1d9;"><?php echo esc_html($steamid_64); ?></code>
-							</div>
-						<?php endif; ?>
-						<?php if ( !empty($bohemia_uid) ) : ?>
-							<div style="display: flex; align-items: center; gap: 6px; justify-content: center;">
-								<i class="fa-solid fa-puzzle-piece" style="color: #58a6ff;"></i>
-								<code style="background: #161b22; padding: 2px 8px; border-radius: 3px; font-size: 0.65rem; color: #c9d1d9;"><?php echo esc_html($bohemia_uid); ?></code>
-							</div>
-						<?php endif; ?>
 						<div style="display: flex; align-items: center; gap: 6px; justify-content: center;">
 							<i class="fa-solid fa-calendar-days" style="color: #58a6ff;"></i>
 							<span style="color: #8b949e;"><?php echo $enrol_date_f; ?></span>
