@@ -38,8 +38,18 @@ class RMM_Raid_Handler {
 		}
 
 		$user = wp_get_current_user();
-		$today = date('Y-m-d');
-		$max_date = date('Y-m-d', strtotime('+14 days'));
+		$now_timestamp = current_time( 'timestamp' ); 
+		$min_timestamp = $now_timestamp + 3600; 
+		$today = date( 'Y-m-d', $now_timestamp ); 
+		$min_hour = (int) date( 'H', $min_timestamp ); 
+		$min_minute = (int) date( 'i', $min_timestamp ); 
+		// Si todas las horas de hoy ya pasaron, empezar mañana 
+		if ( $min_hour >= 23 || ( $min_hour == 22 && $min_minute > 30 ) ) { 
+			$today = date( 'Y-m-d', strtotime( '+1 day', $now_timestamp ) ); 
+			$min_hour = 0; 
+			$min_minute = 0; 
+		}
+		$max_date = date( 'Y-m-d', strtotime( '+14 days', $now_timestamp ) );
 
 		ob_start();
 		?>
@@ -72,10 +82,11 @@ class RMM_Raid_Handler {
 							style="width:100%; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:10px 12px; color:#c9d1d9; font-family:'Inter',sans-serif; font-size:0.85rem;">
 							<option value="">-- <?php _e( 'Selecciona hora', 'reforger-milsim' ); ?> --</option>
 							<?php
-							for ( $h = 15; $h <= 23; $h++ ) {
+							for ( $h = 0; $h <= 23; $h++ ) {
 								for ( $m = 0; $m < 60; $m += 30 ) {
 									$time = sprintf( '%02d:%02d', $h, $m );
 									$label = sprintf( '%02d:%02dh', $h, $m );
+ 	 	 	 	 	 	 	 	 	 	 	if ( $h < $min_hour || ( $h == $min_hour && $m <= $min_minute ) ) continue;
 									echo "<option value=\"$time\">$label</option>";
 								}
 							}
@@ -181,28 +192,30 @@ class RMM_Raid_Handler {
 				});
 			});
 
-			// Preseleccionar siguiente hora redonda
-			var now = new Date();
-			var currentHour = now.getHours();
-			var currentMinute = now.getMinutes();
-			// Si es antes de las 15h, default 20:00; si es después de las 23h, mañana
-			if (currentHour < 15) {
-				$('#raid_time').val('20:00');
-			} else if (currentHour >= 23) {
-				var tomorrow = new Date(now);
-				tomorrow.setDate(tomorrow.getDate() + 1);
-				$('#raid_date').val(tomorrow.toISOString().split('T')[0]);
-				$('#raid_time').val('20:00');
-			} else {
-				// Redondear a la siguiente media hora
-				var nextHour = currentHour;
-				var nextMinute = currentMinute < 30 ? 30 : 0;
-				if (nextMinute === 0) nextHour++;
-				if (nextHour > 23) nextHour = 20;
-				$('#raid_time').val(
-					String(nextHour).padStart(2,'0') + ':' + String(nextMinute).padStart(2,'0')
-				);
-			}
+			// Usar hora WP para preselección
+						var wpNow = new Date(<?php echo current_time('timestamp') * 1000; ?>);
+						var currentHour = wpNow.getHours();
+						var currentMinute = wpNow.getMinutes();
+						var minHour = currentHour + 1;
+						var minMinute = currentMinute;
+						if (minMinute > 0 && minMinute <= 30) minMinute = 30;
+						else if (minMinute > 30) { minHour++; minMinute = 0; }
+						if (minHour >= 23) {
+							// Mañana
+							var tomorrow = new Date(wpNow);
+							tomorrow.setDate(tomorrow.getDate() + 1);
+							$('#raid_date').val(tomorrow.toISOString().split('T')[0]);
+							$('#raid_time').val('20:00');
+						} else {
+							// Redondear a siguiente en punto o y media
+							var nextMinute = currentMinute < 30 ? 30 : 0;
+							var nextHour = currentHour + 1;
+							if (nextMinute === 0) nextHour++;
+							if (nextHour > 23) nextHour = 20;
+							$('#raid_time').val(
+								String(nextHour).padStart(2,'0') + ':' + String(nextMinute).padStart(2,'0')
+							);
+						}
 		});
 		</script>
 		<?php
@@ -230,10 +243,11 @@ class RMM_Raid_Handler {
 			wp_send_json_error( __( 'Fecha y hora son obligatorios.', 'reforger-milsim' ) );
 		}
 
-		// Validar que la fecha no sea pasada
-		$raid_datetime = strtotime( "$date $time" );
-		if ( $raid_datetime < time() ) {
-			wp_send_json_error( __( 'La fecha y hora no pueden ser pasadas.', 'reforger-milsim' ) );
+		// Validar que la fecha no sea pasada (usando WP timezone)
+				$now_timestamp = current_time( 'timestamp' );
+				$raid_datetime = strtotime( "$date $time" );
+				if ( $raid_datetime < $now_timestamp + 3600 ) {
+					wp_send_json_error( __( 'La hora debe ser al menos 1h desde ahora. Solo en punto o y media.', 'reforger-milsim' ) );
 		}
 
 		// Formatear fecha al estilo del bot
