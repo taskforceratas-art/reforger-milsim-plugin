@@ -523,7 +523,6 @@ class RMM_Raid_Handler {
 				echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Confirmado</title><style>body{background:#0d1117;color:#c9d1d9;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}.box{text-align:center;padding:40px;background:#161b22;border:1px solid #21262d;border-radius:12px;max-width:400px}.icon{font-size:3rem;margin-bottom:16px}h1{font-size:1.2rem;color:#22c55e;margin:0 0 8px}p{font-size:0.9rem;color:#8b949e;margin:4px 0}.count{font-size:2rem;font-weight:800;color:#CFDC35}</style></head><body><div class="box"><div class="icon">✅</div><h1>¡Asistencia confirmada!</h1><p>' . esc_html( $nombre ) . ', te has apuntado a la misión.</p><p style="margin-top:16px">👥 Participantes: <span class="count">' . $count . '</span></p></div></body></html>';
 				exit;
 			}
-	}
 
 	/**
 	 * Devuelve las raids para el calendario FullCalendar
