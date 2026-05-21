@@ -4,7 +4,7 @@
  * Plugin URI:  https://gure.party
  * Description: Gestión integral para comunidades de Arma Reforger: Misiones, Eventos, ORBAT y Condecoraciones.
  * Version:     1.0.0
- * Author:      Antigravity & TRAUMAN
+ * Author:      Antigravity, TRAUMAN, Gemini, DeepSeek, Zed
  * Author URI:  https://gure.party
  * Text Domain: reforger-milsim
  * License:     GPL2
