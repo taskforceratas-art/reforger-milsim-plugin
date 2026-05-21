@@ -193,11 +193,13 @@ class RMM_Telemetry_Handler {
 		);
 
 		// Convertir tiempo a horas como float (NO int) para no perder precisión
-				if ( isset( $data['playtime_seconds'] ) && ! isset( $data['hours'] ) && ! isset( $data['playtime_hours'] ) && ! isset( $data['playtime_minutes'] ) ) {
-					$data['playtime_hours'] = round( intval( $data['playtime_seconds'] ) / 3600, 4 );
-				} elseif ( isset( $data['playtime_minutes'] ) && ! isset( $data['hours'] ) && ! isset( $data['playtime_hours'] ) ) {
-					$data['playtime_hours'] = round( intval( $data['playtime_minutes'] ) / 60, 4 );
-				}
+						if ( isset( $data['playtime_seconds'] ) && ! isset( $data['hours'] ) && ! isset( $data['playtime_hours'] ) && ! isset( $data['playtime_minutes'] ) ) {
+							$data['playtime_hours'] = round( intval( $data['playtime_seconds'] ) / 3600, 4 );
+						} elseif ( isset( $data['playtime_second'] ) && ! isset( $data['hours'] ) && ! isset( $data['playtime_hours'] ) && ! isset( $data['playtime_minutes'] ) ) {
+							$data['playtime_hours'] = round( intval( $data['playtime_second'] ) / 3600, 4 );
+						} elseif ( isset( $data['playtime_minutes'] ) && ! isset( $data['hours'] ) && ! isset( $data['playtime_hours'] ) ) {
+							$data['playtime_hours'] = round( intval( $data['playtime_minutes'] ) / 60, 4 );
+						}
 
 				foreach ( $fields as $meta_key => $aliases ) {
 					$value = null;
