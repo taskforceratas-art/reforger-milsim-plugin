@@ -117,7 +117,7 @@ class RMM_Raid_Handler {
 
 				<!-- Botón -->
 				<button type="button" id="btn_send_raid" class="rmm-btn btn-primary" style="
-					background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+					background: linear-gradient(135deg, #CFDC35 0%, #a8b81a 100%);
 					border: none;
 					border-radius: 6px;
 					padding: 12px 24px;
@@ -144,9 +144,9 @@ class RMM_Raid_Handler {
 		jQuery(document).ready(function($) {
 			$('#rmm-raid-form input, #rmm-raid-form select, #rmm-raid-form textarea').on('focus', function() {
 				$(this).css({
-					'border-color': '#22c55e',
-					'outline': 'none',
-					'box-shadow': '0 0 0 2px rgba(34,197,94,0.15)'
+					'border-color': '#CFDC35',
+										'outline': 'none',
+										'box-shadow': '0 0 0 2px rgba(207,220,53,0.15)'
 				});
 			}).on('blur', function() {
 				$(this).css({
