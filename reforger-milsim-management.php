@@ -237,7 +237,7 @@ class ReforgerMilsimManagement {
  */
 function rmm_parse_local_date( $date_str ) {
     $date_str = str_replace( "T", " ", trim( $date_str ) );
-    if ( ! preg_match( "/:\d{2}$/", $date_str ) ) {
+    if ( ! preg_match( "/:\d{2}:\d{2}$/", $date_str ) ) {
         $date_str .= ":00";
     }
     $dt = DateTime::createFromFormat( "Y-m-d H:i:s", $date_str, wp_timezone() );

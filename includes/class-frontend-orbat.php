@@ -41,9 +41,9 @@ class RMM_Frontend_ORBAT {
 
 			// La fecha se guarda en hora local (UTC+2 Bilbao). Soportar formatos con/sin T, con/sin segundos.
 					$fecha_inicio = str_replace( 'T', ' ', trim( $fecha_inicio ) );
-					if ( ! preg_match( '/:\d{2}$/', $fecha_inicio ) ) {
-						$fecha_inicio .= ':00';
-					}
+					if ( ! preg_match( '/:\d{2}:\d{2}$/', $fecha_inicio ) ) {
+								$fecha_inicio .= ':00';
+							}
 					$dt = DateTime::createFromFormat( 'Y-m-d H:i:s', $fecha_inicio, wp_timezone() );
 			if ( ! $dt ) return '';
 		
