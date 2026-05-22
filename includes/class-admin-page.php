@@ -18,7 +18,8 @@ class RMM_Admin_Page {
 		add_action( 'wp_ajax_rmm_send_telegram_aviso', array( $this, 'ajax_send_telegram_aviso' ) );
 		add_action( 'wp_ajax_rmm_server_power_action', array( $this, 'ajax_server_power_action' ) );
 		add_action( 'admin_menu', array( $this, 'restrict_admin_menu' ), 999 );
-		add_action( 'admin_bar_menu', array( $this, 'restrict_admin_bar' ), 999 );
+				add_action( 'admin_bar_menu', array( $this, 'restrict_admin_bar' ), 999 );
+				add_action( 'admin_init', array( $this, 'redirect_non_admin_dashboard' ) );
 	}
 
 	/**
@@ -2560,12 +2561,23 @@ class RMM_Admin_Page {
 		}
 		
 		// Renombrar "Perfil" a "Mi Perfil" y cambiar icono
-		foreach ( $menu as $i => $item ) {
-			if ( isset( $item[2] ) && $item[2] === 'profile.php' ) {
-				$menu[ $i ][0] = '👤 Mi Perfil';
-				$menu[ $i ][6] = 'dashicons-admin-users';
-			}
-		}
+				foreach ( $menu as $i => $item ) {
+					if ( isset( $item[2] ) && $item[2] === 'profile.php' ) {
+						$menu[ $i ][0] = '👤 Mi Perfil';
+						$menu[ $i ][6] = 'dashicons-admin-users';
+					}
+				}
+
+				// Añadir enlace para volver a la web (directamente a la home)
+						$menu[0] = array(
+							'🏠 Volver a la Web',
+							'read',
+							home_url(),
+							'',
+							'menu-top menu-first',
+							'menu-home',
+							'dashicons-admin-home'
+						);
 	}
 
 	/**
@@ -2581,8 +2593,24 @@ class RMM_Admin_Page {
 			foreach ( $nodes as $id => $node ) {
 				if ( ! in_array( $id, $allowed ) ) {
 					$wp_admin_bar->remove_node( $id );
-				}
-			}
-		}
-	}
-}
+									}
+								}
+							}
+						}
+
+						/**
+						 * Redirige a los no-admins fuera del escritorio al intentar acceder a /wp-admin/
+						 */
+						public function redirect_non_admin_dashboard() {
+							if ( current_user_can( 'administrator' ) ) return;
+							if ( wp_doing_ajax() ) return;
+
+							$allowed = array( 'profile.php', 'admin-ajax.php', 'async-upload.php' );
+							$current = basename( $_SERVER['SCRIPT_NAME'] );
+
+							if ( ! in_array( $current, $allowed ) && strpos( $_SERVER['REQUEST_URI'], '/wp-admin/' ) !== false ) {
+								wp_redirect( home_url() );
+								exit;
+							}
+						}
+					}
