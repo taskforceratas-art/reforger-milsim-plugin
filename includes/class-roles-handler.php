@@ -210,8 +210,13 @@ class RMM_Roles_Handler {
 					<p class="description"><?php _e( 'ID numérico de Telegram (ej: 12345678). Se usa para auto-confirmar asistencia a RAIDs desde el bot.', 'reforger-milsim' ); ?></p>
 				</td>
 			</tr>
+		</table>
+
+		<?php if ( $can_edit_tactical ) : ?>
+		<h3><?php _e( 'Fecha de Enrolamiento', 'reforger-milsim' ); ?></h3>
+		<table class="form-table">
 			<tr>
-				<th><label for="rmm_enrolment_date"><?php _e( 'Fecha de Enrolamiento', 'reforger-milsim' ); ?></label></th>
+				<th><label for="rmm_enrolment_date"><?php _e( 'Fecha', 'reforger-milsim' ); ?></label></th>
 				<td>
 					<input type="date" name="rmm_enrolment_date" id="rmm_enrolment_date" value="<?php echo esc_attr( $enrolment_date ); ?>" class="regular-text" />
 					<p class="description"><?php _e( 'Fecha en la que el operador se unió formalmente al clan.', 'reforger-milsim' ); ?></p>
@@ -219,7 +224,6 @@ class RMM_Roles_Handler {
 			</tr>
 		</table>
 
-		<?php if ( $can_edit_tactical ) : ?>
 		<h3><?php _e( 'Estadísticas de Combate (Manual/Addon)', 'reforger-milsim' ); ?></h3>
 		<p class="description"><?php _e( 'Estos valores serán actualizados automáticamente por el Addon de Arma Reforger en el futuro, pero puedes editarlos manualmente.', 'reforger-milsim' ); ?></p>
 		<table class="form-table">
@@ -369,20 +373,20 @@ class RMM_Roles_Handler {
 		$current = wp_get_current_user();
 		$can_edit_tactical = current_user_can( 'manage_options' ) || in_array( 'fundador', (array) $current->roles );
 		
-		// Info básica (SteamID, BohemiaUID, enrolamiento) — todos los editores
+		// Info básica (SteamID, BohemiaUID) — todos los editores
 		if ( isset( $_POST['steamid_64'] ) ) {
 			update_user_meta( $user_id, 'steamid_64', sanitize_text_field( $_POST['steamid_64'] ) );
 		}
 		if ( isset( $_POST['bohemia_uid'] ) ) {
 			update_user_meta( $user_id, 'bohemia_uid', sanitize_text_field( $_POST['bohemia_uid'] ) );
 		}
+		
+		// Stats de combate, enrolamiento y detección de roles — solo admin/fundador
+		if ( ! $can_edit_tactical ) return;
+		
 		if ( isset( $_POST['rmm_enrolment_date'] ) ) {
 			update_user_meta( $user_id, 'rmm_enrolment_date', sanitize_text_field( $_POST['rmm_enrolment_date'] ) );
 		}
-		
-		// Stats de combate y detección de roles — solo admin/fundador
-		if ( ! $can_edit_tactical ) return;
-		
 		if ( isset( $_POST['rmm_kills'] ) ) {
 			update_user_meta( $user_id, 'rmm_kills', intval( $_POST['rmm_kills'] ) );
 		}

@@ -243,6 +243,10 @@ class RMM_Medal_Rules_Handler {
 
 	public function render_user_medals_admin( $user ) {
 		global $wpdb;
+		
+		$current = wp_get_current_user();
+		$can_remove = current_user_can( 'manage_options' ) || in_array( 'fundador', (array) $current->roles );
+		
 		$awards = $wpdb->get_results( $wpdb->prepare(
 			"SELECT oc.id as award_id, oc.fecha_obtenida, oc.motivo, p.post_title, p.ID as medal_id
 			 FROM {$wpdb->prefix}operador_condecoraciones oc
@@ -271,9 +275,11 @@ class RMM_Medal_Rules_Handler {
 							<td style="padding:6px; font-weight:600;"><?php echo esc_html( $a->post_title ); ?></td>
 							<td style="padding:6px; font-size:0.8rem; color:#555;"><?php echo date( 'd/m/Y', strtotime( $a->fecha_obtenida ) ); ?></td>
 							<td style="padding:6px; font-size:0.8rem; color:#666; font-style:italic;"><?php echo esc_html( $a->motivo ); ?></td>
+							<?php if ( $can_remove ) : ?>
 							<td style="padding:6px; text-align:center;">
 								<button class="rmm-remove-medal-btn button button-small button-link-delete" title="Quitar sin dejar rastro">✕</button>
 							</td>
+							<?php endif; ?>
 						</tr>
 					<?php endforeach; ?>
 				</tbody>
@@ -333,6 +339,12 @@ class RMM_Medal_Rules_Handler {
 
 	public function ajax_remove_user_medal() {
 		if ( ! current_user_can( 'edit_user', intval( $_POST['user_id'] ) ) ) wp_send_json_error( 'Permiso denegado' );
+		
+		$current = wp_get_current_user();
+		if ( ! current_user_can( 'manage_options' ) && ! in_array( 'fundador', (array) $current->roles ) ) {
+			wp_send_json_error( 'Solo admin o fundador' );
+		}
+		
 		global $wpdb;
 		$wpdb->delete( $wpdb->prefix . 'operador_condecoraciones', array( 'id' => intval( $_POST['award_id'] ) ) );
 		wp_send_json_success();
