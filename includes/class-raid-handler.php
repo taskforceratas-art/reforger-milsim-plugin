@@ -576,7 +576,7 @@ class RMM_Raid_Handler {
 				$fecha_fin = get_post_meta( $post_id, 'fecha_fin', true );
 
 				$dt = DateTime::createFromFormat( 'Y-m-d H:i:s', $fecha_inicio, wp_timezone() );
-							if ( ! $dt ) continue;
+							if ( ! $dt ) return;
 							$days = array( 'Monday' => 'Lunes', 'Tuesday' => 'Martes', 'Wednesday' => 'Miércoles', 'Thursday' => 'Jueves', 'Friday' => 'Viernes', 'Saturday' => 'Sábado', 'Sunday' => 'Domingo' );
 							$dia = $days[ $dt->format('l') ] ?? $dt->format('l');
 							$hora = $dt->format('H:i');
