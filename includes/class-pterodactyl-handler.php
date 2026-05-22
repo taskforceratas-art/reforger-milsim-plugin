@@ -291,9 +291,18 @@ class RMM_Pterodactyl_Handler {
 	 * Send notification message to Telegram channel/group
 	 */
 	public function notify_telegram( $text ) {
-		if ( empty( $this->telegram_token ) || empty( $this->telegram_chat_id ) ) {
-			return false;
-		}
+			// Preferir credenciales de RAIDs, fallback a las principales
+			$token = get_option( 'rmm_raid_telegram_token', '' );
+			$chat_id = get_option( 'rmm_raid_telegram_chat_id', '' );
+
+			if ( empty( $token ) || empty( $chat_id ) ) {
+				$token = $this->telegram_token;
+				$chat_id = $this->telegram_chat_id;
+			}
+
+			if ( empty( $token ) || empty( $chat_id ) ) {
+				return false;
+			}
 
 		// Escape Markdown for safety
 		$chars = array( '_' );
@@ -301,17 +310,17 @@ class RMM_Pterodactyl_Handler {
 			$text = str_replace( $c, '\\' . $c, $text );
 		}
 
-		$url = "https://api.telegram.org/bot{$this->telegram_token}/sendMessage";
-		$args = array(
-			'method'    => 'POST',
-			'timeout'   => 15,
-			'sslverify' => false,
-			'body'      => array(
-				'chat_id'    => $this->telegram_chat_id,
-				'text'       => $text,
-				'parse_mode' => 'Markdown',
-			),
-		);
+		$url = "https://api.telegram.org/bot{$token}/sendMessage";
+				$args = array(
+					'method'    => 'POST',
+					'timeout'   => 15,
+					'sslverify' => false,
+					'body'      => array(
+						'chat_id'    => $chat_id,
+						'text'       => $text,
+						'parse_mode' => 'Markdown',
+					),
+				);
 
 		$response = wp_remote_post( $url, $args );
 

@@ -2433,16 +2433,35 @@ class RMM_Admin_Page {
 		}
 		
 		try {
-			$ptero = new RMM_Pterodactyl_Handler();
-			// Remove HTML tags and convert to plain text for Telegram
-			$text = wp_strip_all_tags( $message );
-			$result = $ptero->notify_telegram( $text );
-			
-			if ( $result ) {
-				wp_send_json_success( __( 'Mensaje enviado correctamente al canal de Telegram.', 'reforger-milsim' ) );
-			} else {
-				wp_send_json_error( __( 'No se pudo enviar el mensaje. Verifica las credenciales de Telegram en Configuración.', 'reforger-milsim' ) );
-			}
+					// Usar el mismo bot y canal que las RAIDs
+					$token = get_option( 'rmm_raid_telegram_token', '' );
+					$chat_id = get_option( 'rmm_raid_telegram_chat_id', '-1003157817672' );
+
+					if ( empty( $token ) || empty( $chat_id ) ) {
+						wp_send_json_error( __( 'El bot de Telegram no está configurado. Ve a Ajustes.', 'reforger-milsim' ) );
+					}
+
+					$text = wp_strip_all_tags( $message );
+					$response = wp_remote_post( "https://api.telegram.org/bot{$token}/sendMessage", array(
+						'timeout'   => 15,
+						'sslverify' => false,
+						'body'      => array(
+							'chat_id'    => $chat_id,
+							'text'       => $text,
+							'parse_mode' => 'HTML',
+						),
+					));
+
+					if ( is_wp_error( $response ) ) {
+						wp_send_json_error( $response->get_error_message() );
+					}
+
+					$code = wp_remote_retrieve_response_code( $response );
+					if ( $code === 200 ) {
+						wp_send_json_success( __( 'Mensaje enviado correctamente al canal de Telegram.', 'reforger-milsim' ) );
+					} else {
+						wp_send_json_error( __( 'Error al enviar. Verifica el token y chat ID.', 'reforger-milsim' ) );
+					}
 		} catch ( Exception $e ) {
 			wp_send_json_error( $e->getMessage() );
 		}
