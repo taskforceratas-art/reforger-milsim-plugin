@@ -81,10 +81,25 @@ class RMM_DB_Handler {
 			KEY raid_id (raid_id)
 		) $charset_collate;";
 
+		// Table 5: wp_rmm_medal_rules
+		$table_medal_rules = $wpdb->prefix . 'rmm_medal_rules';
+		$sql5 = "CREATE TABLE $table_medal_rules (
+			id bigint(20) NOT NULL AUTO_INCREMENT,
+			medal_id bigint(20) NOT NULL,
+			rule_name varchar(200) DEFAULT '' NOT NULL,
+			conditions longtext DEFAULT '' NOT NULL,
+			logic varchar(3) DEFAULT 'AND' NOT NULL,
+			enabled tinyint(1) DEFAULT 1 NOT NULL,
+			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			PRIMARY KEY (id),
+			KEY medal_id (medal_id)
+		) $charset_collate;";
+
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql1 );
 		dbDelta( $sql2 );
 		dbDelta( $sql3 );
 		dbDelta( $sql4 );
+		dbDelta( $sql5 );
 	}
 }

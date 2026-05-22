@@ -127,6 +127,9 @@ class RMM_Telemetry_Handler {
 
 			$this->update_player_stats( $user->ID, $player_data );
 			$results['players_updated']++;
+			
+			// Disparar hook para evaluar reglas de condecoraciones
+			do_action( 'rmm_after_telemetry_update', $user->ID, 'telemetry' );
 		}
 
 		return new WP_REST_Response( array(
