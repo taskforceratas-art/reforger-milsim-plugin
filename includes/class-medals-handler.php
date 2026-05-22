@@ -859,6 +859,12 @@ class RMM_Medals_Handler {
 		$hours        = intval( get_user_meta( $user_id, 'rmm_hours', true ) ?: 0 );
 		$shots_fired  = intval( get_user_meta( $user_id, 'rmm_shots_fired', true ) ?: 0 );
 		$shots_hit    = intval( get_user_meta( $user_id, 'rmm_shots_hit', true ) ?: 0 );
+		// Medical stats
+		$bandages     = intval( get_user_meta( $user_id, 'rmm_bandages', true ) ?: 0 );
+		$tourniquets  = intval( get_user_meta( $user_id, 'rmm_tourniquets', true ) ?: 0 );
+		$saline       = intval( get_user_meta( $user_id, 'rmm_saline', true ) ?: 0 );
+		$morphine     = intval( get_user_meta( $user_id, 'rmm_morphine', true ) ?: 0 );
+		$epinephrine  = intval( get_user_meta( $user_id, 'rmm_epinephrine', true ) ?: 0 );
 		$steamid_64   = get_user_meta( $user_id, 'steamid_64', true );
 		$bohemia_uid  = get_user_meta( $user_id, 'bohemia_uid', true );
 		$enrol_date   = get_user_meta( $user_id, 'rmm_enrolment_date', true );
@@ -1043,6 +1049,36 @@ class RMM_Medals_Handler {
 							<i class="fa-solid fa-explosion" style="color: #f78166; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
 							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Impactos', 'reforger-milsim' ); ?></span>
 							<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $shots_hit; ?></strong>
+						</div>
+						
+						<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+							<i class="fa-solid fa-bandage" style="color: #f778ba; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Vendajes', 'reforger-milsim' ); ?></span>
+							<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $bandages; ?></strong>
+						</div>
+						
+						<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+							<i class="fa-solid fa-kit-medical" style="color: #d2a850; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Torniquetes', 'reforger-milsim' ); ?></span>
+							<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $tourniquets; ?></strong>
+						</div>
+						
+						<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+							<i class="fa-solid fa-droplet" style="color: #58a6ff; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Salino', 'reforger-milsim' ); ?></span>
+							<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $saline; ?></strong>
+						</div>
+						
+						<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+							<i class="fa-solid fa-syringe" style="color: #7c3aed; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Morfina', 'reforger-milsim' ); ?></span>
+							<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $morphine; ?></strong>
+						</div>
+						
+						<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+							<i class="fa-solid fa-heart-pulse" style="color: #dc2626; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Epinefrina', 'reforger-milsim' ); ?></span>
+							<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $epinephrine; ?></strong>
 						</div>
 						
 					</div>

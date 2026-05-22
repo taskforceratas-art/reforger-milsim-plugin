@@ -176,6 +176,11 @@ class RMM_Roles_Handler {
 		$hours           = get_the_author_meta( 'rmm_hours', $user->ID ) ?: 0;
 		$shots_fired     = get_the_author_meta( 'rmm_shots_fired', $user->ID ) ?: 0;
 		$shots_hit       = get_the_author_meta( 'rmm_shots_hit', $user->ID ) ?: 0;
+		$bandages        = get_the_author_meta( 'rmm_bandages', $user->ID ) ?: 0;
+		$tourniquets     = get_the_author_meta( 'rmm_tourniquets', $user->ID ) ?: 0;
+		$saline          = get_the_author_meta( 'rmm_saline', $user->ID ) ?: 0;
+		$morphine        = get_the_author_meta( 'rmm_morphine', $user->ID ) ?: 0;
+		$epinephrine     = get_the_author_meta( 'rmm_epinephrine', $user->ID ) ?: 0;
 		$history         = get_user_meta( $user->ID, 'rmm_role_history', true );
 		?>
 		<h3><?php _e( 'Información Táctica (Arma Reforger)', 'reforger-milsim' ); ?></h3>
@@ -234,6 +239,36 @@ class RMM_Roles_Handler {
 				<th><label for="rmm_shots_hit"><?php _e( 'Impactos logrados', 'reforger-milsim' ); ?></label></th>
 				<td>
 					<input type="number" name="rmm_shots_hit" id="rmm_shots_hit" value="<?php echo esc_attr( $shots_hit ); ?>" min="0" class="regular-text" />
+				</td>
+			</tr>
+			<tr>
+				<th><label for="rmm_bandages"><?php _e( 'Vendajes aplicados', 'reforger-milsim' ); ?></label></th>
+				<td>
+					<input type="number" name="rmm_bandages" id="rmm_bandages" value="<?php echo esc_attr( $bandages ); ?>" min="0" class="small-text" />
+				</td>
+			</tr>
+			<tr>
+				<th><label for="rmm_tourniquets"><?php _e( 'Torniquetes aplicados', 'reforger-milsim' ); ?></label></th>
+				<td>
+					<input type="number" name="rmm_tourniquets" id="rmm_tourniquets" value="<?php echo esc_attr( $tourniquets ); ?>" min="0" class="small-text" />
+				</td>
+			</tr>
+			<tr>
+				<th><label for="rmm_saline"><?php _e( 'Salino aplicado', 'reforger-milsim' ); ?></label></th>
+				<td>
+					<input type="number" name="rmm_saline" id="rmm_saline" value="<?php echo esc_attr( $saline ); ?>" min="0" class="small-text" />
+				</td>
+			</tr>
+			<tr>
+				<th><label for="rmm_morphine"><?php _e( 'Morfina aplicada', 'reforger-milsim' ); ?></label></th>
+				<td>
+					<input type="number" name="rmm_morphine" id="rmm_morphine" value="<?php echo esc_attr( $morphine ); ?>" min="0" class="small-text" />
+				</td>
+			</tr>
+			<tr>
+				<th><label for="rmm_epinephrine"><?php _e( 'Epinefrina aplicada', 'reforger-milsim' ); ?></label></th>
+				<td>
+					<input type="number" name="rmm_epinephrine" id="rmm_epinephrine" value="<?php echo esc_attr( $epinephrine ); ?>" min="0" class="small-text" />
 				</td>
 			</tr>
 		</table>
@@ -339,6 +374,21 @@ class RMM_Roles_Handler {
 		}
 		if ( isset( $_POST['rmm_shots_hit'] ) ) {
 			update_user_meta( $user_id, 'rmm_shots_hit', intval( $_POST['rmm_shots_hit'] ) );
+		}
+		if ( isset( $_POST['rmm_bandages'] ) ) {
+			update_user_meta( $user_id, 'rmm_bandages', intval( $_POST['rmm_bandages'] ) );
+		}
+		if ( isset( $_POST['rmm_tourniquets'] ) ) {
+			update_user_meta( $user_id, 'rmm_tourniquets', intval( $_POST['rmm_tourniquets'] ) );
+		}
+		if ( isset( $_POST['rmm_saline'] ) ) {
+			update_user_meta( $user_id, 'rmm_saline', intval( $_POST['rmm_saline'] ) );
+		}
+		if ( isset( $_POST['rmm_morphine'] ) ) {
+			update_user_meta( $user_id, 'rmm_morphine', intval( $_POST['rmm_morphine'] ) );
+		}
+		if ( isset( $_POST['rmm_epinephrine'] ) ) {
+			update_user_meta( $user_id, 'rmm_epinephrine', intval( $_POST['rmm_epinephrine'] ) );
 		}
 		
 		// Detectar cambios de rol (compatible con Members plugin que usa $_POST['role'] como array)

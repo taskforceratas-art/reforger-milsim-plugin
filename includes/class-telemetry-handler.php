@@ -190,6 +190,11 @@ class RMM_Telemetry_Handler {
 			'rmm_hours'       => array( 'hours', 'playtime_hours' ),
 			'rmm_shots_fired' => array( 'shots_fired', 'shotsFired' ),
 			'rmm_shots_hit'   => array( 'shots_hit', 'shotsHit' ),
+			'rmm_bandages'    => array( 'medical_bandages_applied', 'medical _bandages_applied' ),
+			'rmm_tourniquets' => array( 'medical_tourniquets_applied', 'medical _tourniquets_applied' ),
+			'rmm_saline'      => array( 'medical_saline_applied', 'medical _saline_applied' ),
+			'rmm_morphine'    => array( 'medical_morphine_applied', 'medical _morphine_applied' ),
+			'rmm_epinephrine' => array( 'medical_epinephrine_applied', 'medical _epinephrine_applied' ),
 		);
 
 		// Convertir tiempo a horas (acepta segundos, minutos o directamente horas)
