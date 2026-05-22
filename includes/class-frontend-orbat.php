@@ -39,8 +39,12 @@ class RMM_Frontend_ORBAT {
 			$fecha_inicio = get_post_meta( $post_id, 'fecha_inicio', true );
 			if ( empty( $fecha_inicio ) ) return '';
 
-			// La fecha se guarda en hora local (UTC+2 Bilbao). Usar wp_timezone() para evitar offset.
-			$dt = DateTime::createFromFormat( 'Y-m-d H:i:s', $fecha_inicio, wp_timezone() );
+			// La fecha se guarda en hora local (UTC+2 Bilbao). Soportar formatos con/sin T, con/sin segundos.
+					$fecha_inicio = str_replace( 'T', ' ', trim( $fecha_inicio ) );
+					if ( ! preg_match( '/:\d{2}$/', $fecha_inicio ) ) {
+						$fecha_inicio .= ':00';
+					}
+					$dt = DateTime::createFromFormat( 'Y-m-d H:i:s', $fecha_inicio, wp_timezone() );
 			if ( ! $dt ) return '';
 		
 			return ucfirst( wp_date( 'l, j \d\e F \a \l\a\s H:i', $dt->getTimestamp() ) );
