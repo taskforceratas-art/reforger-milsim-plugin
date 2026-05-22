@@ -572,6 +572,9 @@ class RMM_Raid_Handler {
 
 				if ( empty( $token ) || empty( $chat_id ) ) return;
 
+							// Evitar envío duplicado
+							if ( get_post_meta( $post_id, '_raid_notified', true ) ) return;
+
 				$fecha_inicio = get_post_meta( $post_id, 'fecha_inicio', true );
 				$fecha_fin = get_post_meta( $post_id, 'fecha_fin', true );
 
@@ -603,12 +606,15 @@ class RMM_Raid_Handler {
 						'chat_id'    => $chat_id,
 						'text'       => $msg,
 						'parse_mode' => 'HTML',
-					),
-				));
-			}
+										),
+									));
 
-	/**
-	 * Shortcode [raid_apuntarse] - Botón de apuntarse/desapuntarse
+									// Marcar como notificado para no duplicar
+									update_post_meta( $post_id, '_raid_notified', 1 );
+													}
+
+										/**
+										 * Shortcode [raid_apuntarse] - Botón de apuntarse/desapuntarse
 	 */
 	public function render_raid_join_button( $atts ) {
 			if ( ! is_singular( 'raid_eventos' ) ) return '';
