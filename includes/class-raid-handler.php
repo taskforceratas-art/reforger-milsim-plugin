@@ -14,11 +14,19 @@ class RMM_Raid_Handler {
 	public function __construct() {
 		add_shortcode( 'clan_solicitar_raid', array( $this, 'render_raid_form' ) );
 		add_shortcode( 'raid_apuntarse', array( $this, 'render_raid_join_button' ) );
+				add_shortcode( 'raid_fecha', array( $this, 'render_raid_field' ) );
+				add_shortcode( 'raid_hora', array( $this, 'render_raid_field' ) );
+				add_shortcode( 'raid_servidor', array( $this, 'render_raid_field' ) );
+				add_shortcode( 'raid_participantes', array( $this, 'render_raid_field' ) );
+				add_shortcode( 'raid_estado', array( $this, 'render_raid_field' ) );
+				add_shortcode( 'raid_justificacion', array( $this, 'render_raid_field' ) );
+						add_shortcode( 'raid_aprobar', array( $this, 'render_raid_approve_buttons' ) );
 		add_action( 'wp_ajax_rmm_send_raid_request', array( $this, 'ajax_send_raid_request' ) );
 		add_action( 'wp_ajax_rmm_raid_join', array( $this, 'ajax_raid_join' ) );
 		add_action( 'wp_ajax_rmm_raid_leave', array( $this, 'ajax_raid_leave' ) );
 		add_action( 'wp_ajax_nopriv_rmm_raid_join', '__return_false' );
 		add_action( 'wp_ajax_nopriv_rmm_raid_leave', '__return_false' );
+				add_action( 'wp_ajax_rmm_raid_decide', array( $this, 'ajax_raid_decide' ) );
 		add_action( 'rest_api_init', array( $this, 'register_rest_endpoints' ) );
 				add_action( 'publish_eventos_partidas', array( $this, 'notify_raid_channel_on_event' ), 10, 2 );
 						add_filter( 'the_content', array( $this, 'inject_raid_join_to_content' ) );
@@ -530,15 +538,20 @@ class RMM_Raid_Handler {
 	 */
 	public function get_raids_for_calendar( $request ) {
 		$raids = get_posts( array(
-			'post_type'      => 'raid_eventos',
-			'numberposts'    => -1,
-			'post_status'    => 'publish',
-			'meta_key'       => 'raid_estado',
-			'meta_value'     => 'activa',
-			'orderby'        => 'meta_value',
-			'meta_key_order' => 'raid_fecha',
-			'order'          => 'ASC',
-		));
+					'post_type'      => 'raid_eventos',
+					'numberposts'    => -1,
+					'post_status'    => 'publish',
+					'meta_query'     => array(
+						array(
+							'key'     => 'raid_estado',
+							'value'   => array( 'activa', 'aprobada', 'denegada' ),
+							'compare' => 'IN',
+						),
+					),
+					'orderby'        => 'meta_value',
+					'meta_key'       => 'raid_fecha',
+					'order'          => 'ASC',
+				));
 
 		$events = array();
 		foreach ( $raids as $raid ) {
@@ -546,13 +559,17 @@ class RMM_Raid_Handler {
 			$hora  = get_post_meta( $raid->ID, 'raid_hora', true );
 			$participants = get_post_meta( $raid->ID, 'raid_participantes', true ) ?: array();
 
-			$events[] = array(
-				'id'        => 'raid_' . $raid->ID,
-				'title'     => '🎯 ' . $raid->post_title,
-				'start'     => $fecha . 'T' . $hora,
-				'url'       => get_permalink( $raid->ID ),
-				'color'     => '#CFDC35',
-				'textColor' => '#000',
+			$estado_color = get_post_meta( $raid->ID, 'raid_estado', true ) ?: 'activa';
+					$colors = array( 'activa' => '#CFDC35', 'aprobada' => '#22c55e', 'denegada' => '#ef4444', 'finalizada' => '#6b7280', 'cancelada' => '#374151' );
+					$color = $colors[ $estado_color ] ?? '#CFDC35';
+
+					$events[] = array(
+						'id'        => 'raid_' . $raid->ID,
+						'title'     => '🎯 ' . $raid->post_title,
+						'start'     => $fecha . 'T' . $hora,
+						'url'       => get_permalink( $raid->ID ),
+						'color'     => $color,
+						'textColor' => ( $estado_color === 'activa' || $estado_color === 'denegada' ) ? '#000' : '#fff',
 				'extendedProps' => array(
 					'tipo'         => 'raid',
 					'participantes' => count( $participants ),
@@ -749,7 +766,156 @@ class RMM_Raid_Handler {
 			 * Auto-inyecta [raid_apuntarse] en las páginas de raid_eventos
 			 */
 			public function inject_raid_join_to_content( $content ) {
-				if ( ! is_singular( 'raid_eventos' ) || ! in_the_loop() || ! is_main_query() ) return $content;
-				return $content . do_shortcode( '[raid_apuntarse]' );
+							if ( ! is_singular( 'raid_eventos' ) || ! in_the_loop() || ! is_main_query() ) return $content;
+							return $content . do_shortcode( '[raid_apuntarse]' ) . do_shortcode( '[raid_aprobar]' );
+						}
+
+				/**
+				 * Shortcode genérico para mostrar campos de RAID
+				 * [raid_fecha], [raid_hora], [raid_servidor], [raid_participantes], [raid_estado], [raid_justificacion]
+				 */
+				public function render_raid_field( $atts, $content, $tag ) {
+					if ( ! is_singular( 'raid_eventos' ) ) return '';
+					$post_id = get_the_ID();
+
+					switch ( $tag ) {
+						case 'raid_fecha':
+							$fecha = get_post_meta( $post_id, 'raid_fecha', true );
+							if ( ! $fecha ) return '';
+							$dt = DateTime::createFromFormat( 'Y-m-d', $fecha );
+							if ( ! $dt ) return esc_html( $fecha );
+							$days = array( 'Monday' => 'Lunes', 'Tuesday' => 'Martes', 'Wednesday' => 'Miércoles', 'Thursday' => 'Jueves', 'Friday' => 'Viernes', 'Saturday' => 'Sábado', 'Sunday' => 'Domingo' );
+							return esc_html( $days[ $dt->format('l') ] . ' ' . $dt->format('j') );
+
+						case 'raid_hora':
+							return esc_html( get_post_meta( $post_id, 'raid_hora', true ) ?: '' );
+
+						case 'raid_servidor':
+							return esc_html( get_post_meta( $post_id, 'raid_servidor', true ) ?: '' );
+
+						case 'raid_participantes':
+							$parts = get_post_meta( $post_id, 'raid_participantes', true ) ?: array();
+							return count( $parts );
+
+						case 'raid_estado':
+							$estado = get_post_meta( $post_id, 'raid_estado', true ) ?: 'activa';
+							$labels = array( 'activa' => '🟡 Pendiente', 'aprobada' => '🟢 Aprobada', 'denegada' => '🔴 Denegada', 'finalizada' => '✅ Finalizada', 'cancelada' => '🚫 Cancelada' );
+							return esc_html( $labels[ $estado ] ?? $estado );
+
+						case 'raid_justificacion':
+							return esc_html( get_post_meta( $post_id, 'raid_justificacion', true ) ?: '' );
+
+						default:
+							return '';
+					}
+				}
+
+				/**
+				 * Shortcode [raid_aprobar] — Botones de aprobar/denegar para admins/editores/fundadores
+				 */
+				public function render_raid_approve_buttons( $atts ) {
+					if ( ! is_singular( 'raid_eventos' ) ) return '';
+					if ( ! is_user_logged_in() ) return '';
+
+					$user = wp_get_current_user();
+					$can_approve = array_intersect( array( 'administrator', 'editor', 'fundador' ), (array) $user->roles );
+					if ( ! $can_approve ) return '';
+
+					$post_id = get_the_ID();
+					$estado = get_post_meta( $post_id, 'raid_estado', true ) ?: 'activa';
+					if ( $estado !== 'activa' ) return '';
+
+					ob_start();
+					?>
+					<div class="rmm-raid-approve-widget" style="background:#0d1117;border:1px solid #CFDC35;border-radius:8px;padding:16px;margin:16px 0;font-family:'Inter',sans-serif;color:#c9d1d9;">
+						<h4 style="font-size:0.75rem;color:#CFDC35;margin:0 0 12px;text-transform:uppercase;letter-spacing:0.05em;">
+							<i class="fa-solid fa-gavel"></i> <?php _e( 'Gestión de RAID', 'reforger-milsim' ); ?>
+						</h4>
+						<textarea id="raid_justificacion" placeholder="Justificación (obligatoria para denegar)..." style="width:100%;background:#161b22;border:1px solid #30363d;border-radius:6px;padding:10px;color:#c9d1d9;font-size:0.8rem;resize:vertical;min-height:60px;box-sizing:border-box;"></textarea>
+						<div style="display:flex;gap:10px;margin-top:10px;">
+							<button id="btn_aprobar_raid" data-raid="<?php echo $post_id; ?>" style="flex:1;background:#22c55e;color:#fff;border:none;border-radius:6px;padding:10px;font-weight:700;cursor:pointer;text-transform:uppercase;font-size:0.75rem;">
+								✅ Aprobar
+							</button>
+							<button id="btn_denegar_raid" data-raid="<?php echo $post_id; ?>" style="flex:1;background:#ef4444;color:#fff;border:none;border-radius:6px;padding:10px;font-weight:700;cursor:pointer;text-transform:uppercase;font-size:0.75rem;">
+								❌ Denegar
+							</button>
+						</div>
+						<div id="raid_approve_status" style="text-align:center;font-size:0.75rem;margin-top:8px;"></div>
+					</div>
+					<script>
+					jQuery(document).ready(function($) {
+						function sendDecision(accion) {
+							var just = $('#raid_justificacion').val().trim();
+							if (accion === 'denegar' && !just) {
+								alert('Debes escribir una justificación para denegar la RAID.');
+								return;
+							}
+							$('#btn_aprobar_raid, #btn_denegar_raid').prop('disabled', true);
+							$('#raid_approve_status').html('<span style="color:#f59e0b;">Procesando...</span>');
+							$.post('<?php echo admin_url("admin-ajax.php"); ?>', {
+								action: 'rmm_raid_decide',
+								raid_id: <?php echo $post_id; ?>,
+								decision: accion,
+								justificacion: just,
+								_ajax_nonce: '<?php echo wp_create_nonce("rmm_raid_decide"); ?>'
+							}, function(r) {
+								if (r.success) location.reload();
+								else $('#raid_approve_status').html('<span style="color:#ef4444;">' + (r.data||'Error') + '</span>');
+							});
+						}
+						$('#btn_aprobar_raid').on('click', function() { sendDecision('aprobar'); });
+						$('#btn_denegar_raid').on('click', function() { sendDecision('denegar'); });
+					});
+					</script>
+					<?php
+					return ob_get_clean();
+				}
+
+				/**
+				 * AJAX: Aprobar o denegar una RAID
+				 */
+				public function ajax_raid_decide() {
+					check_ajax_referer( 'rmm_raid_decide' );
+					$user = wp_get_current_user();
+					$can = array_intersect( array( 'administrator', 'editor', 'fundador' ), (array) $user->roles );
+					if ( ! $can ) wp_send_json_error( 'Sin permisos.' );
+
+					$raid_id = intval( $_POST['raid_id'] );
+					$decision = sanitize_text_field( $_POST['decision'] );
+					$justificacion = sanitize_textarea_field( $_POST['justificacion'] );
+
+					if ( ! in_array( $decision, array( 'aprobar', 'denegar' ) ) ) wp_send_json_error( 'Decisión inválida.' );
+
+					$estado = $decision === 'aprobar' ? 'aprobada' : 'denegada';
+					update_post_meta( $raid_id, 'raid_estado', $estado );
+					update_post_meta( $raid_id, 'raid_justificacion', $justificacion );
+
+					// Notificar a Telegram
+					$token = get_option( 'rmm_raid_telegram_token', '' );
+					$chat_id = get_option( 'rmm_raid_telegram_chat_id', '-1003157817672' );
+
+					if ( $token && $chat_id ) {
+						$raid = get_post( $raid_id );
+						$parts = get_post_meta( $raid_id, 'raid_participantes', true ) ?: array();
+						$count = count( $parts );
+						$icon = $decision === 'aprobar' ? '🟢' : '🔴';
+						$accion_label = $decision === 'aprobar' ? 'APROBADA' : 'DENEGADA';
+
+						$msg = "{$icon} <b>RAID {$accion_label}</b>\n\n";
+						$msg .= "🎯 <b>" . esc_html( $raid->post_title ) . "</b>\n";
+						$msg .= "👤 Por: " . esc_html( $user->display_name ) . "\n";
+						$msg .= "👥 Participantes: {$count}\n";
+						if ( $justificacion ) {
+							$msg .= "📝 <b>Justificación:</b> " . esc_html( $justificacion ) . "\n";
+						}
+						$msg .= "\n🔗 " . get_permalink( $raid_id );
+
+						wp_remote_post( "https://api.telegram.org/bot{$token}/sendMessage", array(
+							'timeout' => 15, 'sslverify' => false,
+							'body' => array( 'chat_id' => $chat_id, 'text' => $msg, 'parse_mode' => 'HTML' ),
+						));
+					}
+
+					wp_send_json_success( 'Decisión guardada.' );
+				}
 			}
-		}
