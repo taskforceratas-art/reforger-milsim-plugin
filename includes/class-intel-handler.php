@@ -120,7 +120,7 @@ class RMM_Intel_Handler {
 				// Construir fecha con offset GMT de WP
 								$gmt = intval( get_option( 'gmt_offset', 2 ) );
 								$sign = $gmt >= 0 ? '+' : '';
-								$tz = new DateTimeZone( $sign . str_pad( abs( $gmt ), 2, '0', STR_PAD_LEFT ) . ':00' );
+								$tz = new DateTimeZone( sprintf( '%+03d:00', $gmt ) );
 								$dt = new DateTime( 'now', new DateTimeZone( 'UTC' ) );
 								$dt->setTimezone( $tz );
 
