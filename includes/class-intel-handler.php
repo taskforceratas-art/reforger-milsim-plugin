@@ -115,24 +115,12 @@ class RMM_Intel_Handler {
 			 * Shortcode [hora_zulu] — Hora peninsular española en formato militar
 			 */
 			public function render_hora_zulu( $atts ) {
-				$atts = shortcode_atts( array( 'color' => '#CFDC35' ), $atts );
+							$atts = shortcode_atts( array( 'color' => '#CFDC35' ), $atts );
 
-				// Construir fecha con offset GMT de WP
-								$gmt = intval( get_option( 'gmt_offset', 2 ) );
-								$tz = new DateTimeZone( sprintf( '%+03d:00', $gmt ) );
-								$dt = new DateTime( 'now', new DateTimeZone( 'UTC' ) );
-								$dt->setTimezone( $tz );
+							$hora = current_time( 'H:i' );
+							$dtg = current_time( 'dHi' ) . 'L ' . current_time( 'M Y' );
 
-								// Letra de zona horaria militar: A=UTC+1 (Alpha), B=UTC+2 (Bravo)
-								$offset = $dt->getOffset() / 3600;
-				$zones = array( 1 => 'A', 2 => 'B', 0 => 'Z', -1 => 'N' );
-				$zone_letter = $zones[ $offset ] ?? 'L'; // L = Local
-
-				// Formato estilo militar: DTG (Date Time Group)
-				$dtg = $dt->format( 'dHi') . $zone_letter . ' ' . strtoupper( $dt->format( 'M Y' ) );
-				$hora = $dt->format( 'H:i' );
-
-				ob_start();
+							ob_start();
 				?>
 				<div class="rmm-zulu-time" style="display:inline-block;font-family:'JetBrains Mono','SF Mono',monospace;font-size:0.85rem;color:<?php echo esc_attr( $atts['color'] ); ?>;background:rgba(0,0,0,0.3);border:1px solid rgba(207,220,53,0.3);border-radius:4px;padding:6px 14px;letter-spacing:0.06em;">
 					<span style="opacity:0.6;font-size:0.65rem;text-transform:uppercase;">⌚ HORA LOCAL • </span>
