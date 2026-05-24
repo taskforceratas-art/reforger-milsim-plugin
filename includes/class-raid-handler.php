@@ -20,6 +20,7 @@ class RMM_Raid_Handler {
 				add_shortcode( 'raid_participantes', array( $this, 'render_raid_field' ) );
 				add_shortcode( 'raid_estado', array( $this, 'render_raid_field' ) );
 				add_shortcode( 'raid_justificacion', array( $this, 'render_raid_field' ) );
+								add_shortcode( 'raid_notas', array( $this, 'render_raid_field' ) );
 						add_shortcode( 'raid_aprobar', array( $this, 'render_raid_approve_buttons' ) );
 								add_shortcode( 'raid_lista_participantes', array( $this, 'render_raid_participants_list' ) );
 								add_shortcode( 'raid_boton_participar', array( $this, 'render_raid_join_only_button' ) );
@@ -805,7 +806,11 @@ class RMM_Raid_Handler {
 							return esc_html( $labels[ $estado ] ?? $estado );
 
 						case 'raid_justificacion':
-							return esc_html( get_post_meta( $post_id, 'raid_justificacion', true ) ?: '' );
+												return esc_html( get_post_meta( $post_id, 'raid_justificacion', true ) ?: '' );
+
+											case 'raid_notas':
+												$raid_post = get_post( $post_id );
+												return $raid_post ? wp_kses_post( $raid_post->post_content ) : '';
 
 						default:
 							return '';
