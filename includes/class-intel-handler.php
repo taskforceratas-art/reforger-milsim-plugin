@@ -15,7 +15,23 @@ class RMM_Intel_Handler {
 	}
 
 	public function enqueue_zulu_js() {
-		wp_enqueue_script( 'rmm-zulu-js', RMM_PLUGIN_URL . 'assets/js/rmm-zulu.js', array(), RMM_VERSION, true );
+		// Enganchar a jQuery para que Elementor no lo bloquee
+		wp_add_inline_script( 'jquery', '
+			jQuery(function($) {
+				function pad(n) { return n < 10 ? "0" + n : n; }
+				var months = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
+				function updateZulu() {
+					var d = new Date();
+					var hh = pad(d.getHours());
+					var mm = pad(d.getMinutes());
+					var dtg = pad(d.getDate()) + hh + mm + "L " + months[d.getMonth()] + " " + d.getFullYear();
+					$(".rmm-zulu-time-val").text(hh + ":" + mm);
+					$(".rmm-zulu-dtg").text(dtg);
+				}
+				updateZulu();
+				setInterval(updateZulu, 60000);
+			});
+		' );
 	}
 
 	public function shortcode_coordenadas_militares( $atts ) {
