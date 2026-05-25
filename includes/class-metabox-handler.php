@@ -411,6 +411,30 @@ class RMM_Metabox_Handler {
 			<option value="">-- Ninguna --</option>
 			<?php foreach($medallas as $m) echo '<option value="'.$m->ID.'" '.selected($condecoracion_id,$m->ID,false).'>'.$m->post_title.'</option>'; ?>
 		</select></p>
+		<p>
+			<button type="button" id="rmm-resend-telegram-btn" class="button" data-post-id="<?php echo $post->ID; ?>" style="margin-top:8px;">📢 Reenviar a Telegram</button>
+			<span id="rmm-resend-feedback" style="margin-left:10px;font-size:12px;display:none;"></span>
+		</p>
+		<script>
+		jQuery(document).ready(function($) {
+			$('#rmm-resend-telegram-btn').on('click', function() {
+				var btn = $(this);
+				btn.prop('disabled', true).text('Enviando...');
+				$.post(ajaxurl, {
+					action: 'rmm_resend_telegram_event',
+					post_id: btn.data('post-id')
+				}, function(res) {
+					var fb = $('#rmm-resend-feedback');
+					if (res.success) {
+						fb.css('color','#00a32a').text('Enviado correctamente').show();
+					} else {
+						fb.css('color','#d63638').text('Error: ' + (res.data || 'Desconocido')).show();
+					}
+					btn.prop('disabled', false).text('Reenviar a Telegram');
+				});
+			});
+		});
+		</script>
 		<?php
 	}
 

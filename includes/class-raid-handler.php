@@ -599,7 +599,11 @@ class RMM_Raid_Handler {
 							if ( get_post_meta( $post_id, '_raid_notified', true ) ) return;
 
 				$fecha_inicio = get_post_meta( $post_id, 'fecha_inicio', true );
-				$fecha_fin = get_post_meta( $post_id, 'fecha_fin', true );
+				$fecha_fin    = get_post_meta( $post_id, 'fecha_fin', true );
+
+				// Normalizar formato datetime-local (T) a espacio
+				$fecha_inicio = str_replace( 'T', ' ', trim( $fecha_inicio ) );
+				if ( ! preg_match( '/:\d{2}:\d{2}$/', $fecha_inicio ) ) $fecha_inicio .= ':00';
 
 				$dt = DateTime::createFromFormat( 'Y-m-d H:i:s', $fecha_inicio, wp_timezone() );
 							if ( ! $dt ) return;
@@ -1146,6 +1150,35 @@ class RMM_Raid_Handler {
 					'chat_id' => $chat_id, 'text' => $msg, 'parse_mode' => 'HTML',
 				),
 			));
+		}
+	}
+
+
+	/**
+	 * AJAX: Reenviar notificacion de evento a Telegram
+	 */
+	public function ajax_resend_telegram_event() {
+		if ( ! current_user_can( 'edit_post', intval( $_POST['post_id'] ) ) ) {
+			wp_send_json_error( 'Permiso denegado' );
+		}
+		
+		$post_id = intval( $_POST['post_id'] );
+		$post = get_post( $post_id );
+		if ( ! $post || $post->post_type !== 'eventos_partidas' ) {
+			wp_send_json_error( 'Evento no encontrado' );
+		}
+		
+		// Eliminar flag para permitir reenvio
+		delete_post_meta( $post_id, '_raid_notified' );
+		
+		// Llamar al metodo de notificacion
+		$this->notify_raid_channel_on_event( $post_id, $post );
+		
+		// Verificar si se envio
+		if ( get_post_meta( $post_id, '_raid_notified', true ) ) {
+			wp_send_json_success( 'Enviado correctamente' );
+		} else {
+			wp_send_json_error( 'No se pudo enviar. Verifica que el token y chat ID de Telegram esten configurados en Ajustes.' );
 		}
 	}
 
