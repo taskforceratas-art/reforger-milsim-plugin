@@ -202,6 +202,7 @@ class ReforgerMilsimManagement {
 		register_activation_hook( __FILE__, array( 'RMM_Roles_Handler', 'init_roles' ) );
 		register_activation_hook( __FILE__, 'flush_rewrite_rules' );
 		register_deactivation_hook( __FILE__, 'flush_rewrite_rules' );
+		register_deactivation_hook( __FILE__, array( 'RMM_Calendar_Handler', 'clear_cron' ) );
 
 		// Core Setup
 		add_action( 'after_setup_theme', array( $this, 'register_image_sizes' ) );
