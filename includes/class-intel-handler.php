@@ -140,10 +140,10 @@ class RMM_Intel_Handler {
 
 				ob_start();
 				?>
-				<div class="rmm-zulu-time" style="display:inline-block;font-family:'JetBrains Mono','SF Mono',monospace;font-size:0.85rem;color:<?php echo esc_attr( $atts['color'] ); ?>;background:rgba(0,0,0,0.3);border:1px solid rgba(207,220,53,0.3);border-radius:4px;padding:6px 14px;letter-spacing:0.06em;">
-					<span style="opacity:0.6;font-size:0.65rem;text-transform:uppercase;">⌚ HORA LOCAL •</span>
-					<strong class="rmm-zulu-time-val" style="font-size:1.1rem;letter-spacing:0.08em;">--:--</strong>
-					<span class="rmm-zulu-dtg" style="font-size:0.6rem;opacity:0.5;margin-left:6px;">------ --</span>
+				<div class="rmm-zulu-time" style="display:inline-block;font-family:'JetBrains Mono','SF Mono',monospace;font-size:1rem;color:<?php echo esc_attr( $atts['color'] ); ?>;background:rgba(0,0,0,0.45);border:1px solid rgba(207,220,53,0.3);border-radius:4px;padding:8px 16px;letter-spacing:0.06em;backdrop-filter:blur(4px);">
+					<span style="opacity:0.6;font-size:0.7rem;text-transform:uppercase;">⌚ HORA LOCAL •</span>
+					<strong class="rmm-zulu-time-val" style="font-size:1.3rem;letter-spacing:0.08em;">--:--</strong>
+					<span class="rmm-zulu-dtg" style="font-size:0.65rem;opacity:0.5;margin-left:6px;">------ --</span>
 				</div>
 				<?php
 				return ob_get_clean();
