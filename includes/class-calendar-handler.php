@@ -14,6 +14,76 @@ class RMM_Calendar_Handler {
 		
 		// Auto-inject ORBAT in single pages
 		add_filter( 'the_content', array( $this, 'inject_orbat_to_content' ) );
+		
+		// Automatizacion de estados de eventos
+		add_action( 'rmm_auto_transition_event_states', array( $this, 'auto_transition_event_states' ) );
+		add_action( 'init', array( $this, 'schedule_event_state_cron' ) );
+	}
+
+	/**
+	 * Programar cron para transiciones automaticas de estado
+	 */
+	public function schedule_event_state_cron() {
+		// Registrar intervalo de 5 minutos
+		add_filter( 'cron_schedules', function( $schedules ) {
+			$schedules['every_five_minutes'] = array(
+				'interval' => 300,
+				'display'  => __( 'Cada 5 minutos', 'reforger-milsim' ),
+			);
+			return $schedules;
+		});
+		
+		if ( ! wp_next_scheduled( 'rmm_auto_transition_event_states' ) ) {
+			wp_schedule_event( time(), 'every_five_minutes', 'rmm_auto_transition_event_states' );
+		}
+	}
+
+	/**
+	 * Transicionar automaticamente estados de eventos segun sus fechas
+	 */
+	public function auto_transition_event_states() {
+		$now = current_time( 'mysql' );
+		
+		$events = get_posts( array(
+			'post_type'      => 'eventos_partidas',
+			'post_status'    => 'publish',
+			'numberposts'    => -1,
+			'meta_query'     => array(
+				'relation' => 'AND',
+				array( 'key' => 'estado', 'value' => array( 'abierta', 'en_curso', 'debriefing' ), 'compare' => 'IN' ),
+			),
+		) );
+		
+		foreach ( $events as $event ) {
+			$estado       = get_post_meta( $event->ID, 'estado', true );
+			$fecha_inicio = get_post_meta( $event->ID, 'fecha_inicio', true );
+			$fecha_fin    = get_post_meta( $event->ID, 'fecha_fin', true );
+			
+			if ( empty( $fecha_inicio ) ) continue;
+			$inicio = strtotime( $fecha_inicio );
+			$fin    = ! empty( $fecha_fin ) ? strtotime( $fecha_fin ) : $inicio + 7200; // +2h por defecto
+			$now_ts = strtotime( $now );
+			
+			// abierta → en_curso
+			if ( $estado === 'abierta' && $now_ts >= $inicio ) {
+				update_post_meta( $event->ID, 'estado', 'en_curso' );
+			}
+			// en_curso → debriefing
+			elseif ( $estado === 'en_curso' && $now_ts >= $fin ) {
+				update_post_meta( $event->ID, 'estado', 'debriefing' );
+			}
+			// debriefing → finalizada (1h despues del fin)
+			elseif ( $estado === 'debriefing' && $now_ts >= ( $fin + 3600 ) ) {
+				update_post_meta( $event->ID, 'estado', 'finalizada' );
+			}
+		}
+	}
+
+	/**
+	 * Limpiar cron al desactivar el plugin
+	 */
+	public static function clear_cron() {
+		wp_clear_scheduled_hook( 'rmm_auto_transition_event_states' );
 	}
 
 	/**
