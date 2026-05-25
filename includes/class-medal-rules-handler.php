@@ -35,9 +35,21 @@ class RMM_Medal_Rules_Handler {
 	public function ensure_table() {
 		global $wpdb;
 		$table = $wpdb->prefix . 'rmm_medal_rules';
-		if ( $wpdb->get_var( "SHOW TABLES LIKE '$table'" ) !== $table ) {
+		$exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table ) );
+		if ( $exists !== $table ) {
+			$charset = $wpdb->get_charset_collate();
+			$sql = "CREATE TABLE $table (
+				id bigint(20) NOT NULL AUTO_INCREMENT,
+				medal_id bigint(20) NOT NULL,
+				rule_name varchar(200) DEFAULT '' NOT NULL,
+				conditions longtext DEFAULT '' NOT NULL,
+				logic varchar(3) DEFAULT 'AND' NOT NULL,
+				enabled tinyint(1) DEFAULT 1 NOT NULL,
+				created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+				PRIMARY KEY (id)
+			) $charset";
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-			RMM_DB_Handler::create_tables();
+			dbDelta( $sql );
 		}
 	}
 

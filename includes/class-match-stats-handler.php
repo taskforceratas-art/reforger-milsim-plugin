@@ -16,15 +16,50 @@ class RMM_Match_Stats_Handler {
 	public function ensure_table() {
 		global $wpdb;
 		$table = $wpdb->prefix . 'rmm_match_sessions';
-		if ( $wpdb->get_var( "SHOW TABLES LIKE '$table'" ) !== $table ) {
+		$exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table ) );
+		if ( $exists !== $table ) {
+			$charset = $wpdb->get_charset_collate();
+			$sql = "CREATE TABLE $table (
+				id bigint(20) NOT NULL AUTO_INCREMENT,
+				started_at datetime NOT NULL,
+				ended_at datetime DEFAULT NULL,
+				scenario_name varchar(200) DEFAULT '' NOT NULL,
+				scenario_id varchar(100) DEFAULT '' NOT NULL,
+				total_kills int(11) DEFAULT 0 NOT NULL,
+				total_deaths int(11) DEFAULT 0 NOT NULL,
+				total_shots_fired int(11) DEFAULT 0 NOT NULL,
+				total_shots_hit int(11) DEFAULT 0 NOT NULL,
+				total_bandages int(11) DEFAULT 0 NOT NULL,
+				total_tourniquets int(11) DEFAULT 0 NOT NULL,
+				total_saline int(11) DEFAULT 0 NOT NULL,
+				total_morphine int(11) DEFAULT 0 NOT NULL,
+				total_epinephrine int(11) DEFAULT 0 NOT NULL,
+				total_playtime_seconds int(11) DEFAULT 0 NOT NULL,
+				player_count int(11) DEFAULT 0 NOT NULL,
+				PRIMARY KEY (id)
+			) $charset";
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-			RMM_DB_Handler::create_tables();
+			dbDelta( $sql );
 		}
 	}
 
 	public function render_last_match( $atts ) {
 		global $wpdb;
 		$table = $wpdb->prefix . 'rmm_match_sessions';
+		
+		// Crear tabla si no existe
+		static $table_checked = false;
+		if ( ! $table_checked ) {
+			$table_checked = true;
+			$exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table ) );
+			if ( $exists !== $table ) {
+				$charset = $wpdb->get_charset_collate();
+				$sql = "CREATE TABLE $table ( id bigint(20) NOT NULL AUTO_INCREMENT, started_at datetime NOT NULL, ended_at datetime DEFAULT NULL, scenario_name varchar(200) DEFAULT '' NOT NULL, scenario_id varchar(100) DEFAULT '' NOT NULL, total_kills int(11) DEFAULT 0 NOT NULL, total_deaths int(11) DEFAULT 0 NOT NULL, total_shots_fired int(11) DEFAULT 0 NOT NULL, total_shots_hit int(11) DEFAULT 0 NOT NULL, total_bandages int(11) DEFAULT 0 NOT NULL, total_tourniquets int(11) DEFAULT 0 NOT NULL, total_saline int(11) DEFAULT 0 NOT NULL, total_morphine int(11) DEFAULT 0 NOT NULL, total_epinephrine int(11) DEFAULT 0 NOT NULL, total_playtime_seconds int(11) DEFAULT 0 NOT NULL, player_count int(11) DEFAULT 0 NOT NULL, PRIMARY KEY (id) ) $charset";
+				require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+				dbDelta( $sql );
+			}
+		}
+		
 		$session = $wpdb->get_row( "SELECT * FROM $table WHERE ended_at IS NOT NULL ORDER BY ended_at DESC LIMIT 1" );
 		
 		if ( ! $session ) {
