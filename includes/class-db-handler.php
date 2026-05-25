@@ -95,11 +95,35 @@ class RMM_DB_Handler {
 			KEY medal_id (medal_id)
 		) $charset_collate;";
 
+		// Table 6: wp_rmm_match_sessions
+		$table_sessions = $wpdb->prefix . 'rmm_match_sessions';
+		$sql6 = "CREATE TABLE $table_sessions (
+			id bigint(20) NOT NULL AUTO_INCREMENT,
+			started_at datetime NOT NULL,
+			ended_at datetime DEFAULT NULL,
+			scenario_name varchar(200) DEFAULT '' NOT NULL,
+			scenario_id varchar(100) DEFAULT '' NOT NULL,
+			total_kills int(11) DEFAULT 0 NOT NULL,
+			total_deaths int(11) DEFAULT 0 NOT NULL,
+			total_shots_fired int(11) DEFAULT 0 NOT NULL,
+			total_shots_hit int(11) DEFAULT 0 NOT NULL,
+			total_bandages int(11) DEFAULT 0 NOT NULL,
+			total_tourniquets int(11) DEFAULT 0 NOT NULL,
+			total_saline int(11) DEFAULT 0 NOT NULL,
+			total_morphine int(11) DEFAULT 0 NOT NULL,
+			total_epinephrine int(11) DEFAULT 0 NOT NULL,
+			total_playtime_seconds int(11) DEFAULT 0 NOT NULL,
+			player_count int(11) DEFAULT 0 NOT NULL,
+			PRIMARY KEY (id),
+			KEY started_at (started_at)
+		) $charset_collate;";
+
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql1 );
 		dbDelta( $sql2 );
 		dbDelta( $sql3 );
 		dbDelta( $sql4 );
 		dbDelta( $sql5 );
+		dbDelta( $sql6 );
 	}
 }

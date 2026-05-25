@@ -130,6 +130,19 @@ class RMM_Telemetry_Handler {
 			
 			// Disparar hook para evaluar reglas de condecoraciones
 			do_action( 'rmm_after_telemetry_update', $user->ID, 'telemetry' );
+			
+			// Si el payload incluye scenario_name, actualizar la sesion activa
+			if ( ! empty( $data['scenario_name'] ) || ! empty( $data['scenario_id'] ) ) {
+				global $wpdb;
+				$sess_table = $wpdb->prefix . 'rmm_match_sessions';
+				$active = $wpdb->get_row( "SELECT id FROM $sess_table WHERE ended_at IS NULL ORDER BY started_at DESC LIMIT 1" );
+				if ( $active ) {
+					$update = array();
+					if ( ! empty( $data['scenario_name'] ) ) $update['scenario_name'] = sanitize_text_field( $data['scenario_name'] );
+					if ( ! empty( $data['scenario_id'] ) ) $update['scenario_id'] = sanitize_text_field( $data['scenario_id'] );
+					if ( ! empty( $update ) ) $wpdb->update( $sess_table, $update, array( 'id' => $active->id ) );
+				}
+			}
 		}
 
 		return new WP_REST_Response( array(

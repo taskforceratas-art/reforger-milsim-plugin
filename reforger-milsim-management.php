@@ -32,6 +32,7 @@ $rmm_includes = array(
 	'class-server-status-handler.php',
 	'class-telemetry-handler.php',
 	'class-medal-rules-handler.php',
+	'class-match-stats-handler.php',
 	'class-admin-page.php',
 	'class-intel-handler.php',
 	'class-raid-handler.php',
@@ -136,6 +137,7 @@ class ReforgerMilsimManagement {
 		new RMM_Server_Status_Handler();
 		new RMM_Telemetry_Handler();
 		new RMM_Medal_Rules_Handler();
+		new RMM_Match_Stats_Handler();
 		// Global Frontend Filters
 		add_filter( 'the_content', array( $this, 'prepend_mission_event_header' ) );
 		add_filter( 'the_title', array( $this, 'append_time_to_title' ), 10, 2 );
