@@ -118,38 +118,15 @@ class RMM_Intel_Handler {
 				$atts = shortcode_atts( array( 'color' => '#CFDC35' ), $atts );
 				$uid = 'rmm-zulu-' . uniqid();
 
+				wp_enqueue_script( 'rmm-zulu-js', RMM_PLUGIN_URL . 'assets/js/rmm-zulu.js', array(), RMM_VERSION, true );
+
 				ob_start();
 				?>
-				<div id="<?php echo $uid; ?>" class="rmm-zulu-time" style="display:inline-block;font-family:'JetBrains Mono','SF Mono',monospace;font-size:0.85rem;color:<?php echo esc_attr( $atts['color'] ); ?>;background:rgba(0,0,0,0.3);border:1px solid rgba(207,220,53,0.3);border-radius:4px;padding:6px 14px;letter-spacing:0.06em;">
+				<div id="<?php echo $uid; ?>" class="rmm-zulu-time" data-zulu-color="<?php echo esc_attr( $atts['color'] ); ?>" style="display:inline-block;font-family:'JetBrains Mono','SF Mono',monospace;font-size:0.85rem;color:<?php echo esc_attr( $atts['color'] ); ?>;background:rgba(0,0,0,0.3);border:1px solid rgba(207,220,53,0.3);border-radius:4px;padding:6px 14px;letter-spacing:0.06em;">
 					<span style="opacity:0.6;font-size:0.65rem;text-transform:uppercase;">⌚ HORA LOCAL •</span>
 					<strong class="rmm-zulu-time-val" style="font-size:1.1rem;letter-spacing:0.08em;">--:--</strong>
 					<span class="rmm-zulu-dtg" style="font-size:0.6rem;opacity:0.5;margin-left:6px;">------ --</span>
 				</div>
-				<script>
-				(function() {
-					var el = document.getElementById('<?php echo $uid; ?>');
-					if (!el) return;
-					var timeEl = el.querySelector('.rmm-zulu-time-val');
-					var dtgEl  = el.querySelector('.rmm-zulu-dtg');
-					var months = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-					var tz = '<?php echo wp_timezone_string(); ?>';
-				
-					function pad(n) { return n < 10 ? '0' + n : n; }
-				
-					function update() {
-						var d = new Date();
-						var hh = pad(d.getHours());
-						var mm = pad(d.getMinutes());
-						timeEl.textContent = hh + ':' + mm;
-					
-						var dtg = pad(d.getDate()) + hh + mm + 'L ' + months[d.getMonth()] + ' ' + d.getFullYear();
-						dtgEl.textContent = dtg;
-					}
-				
-					update();
-					setInterval(update, 60000);
-				})();
-				</script>
 				<?php
 				return ob_get_clean();
 			}
