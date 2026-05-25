@@ -9,9 +9,14 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class RMM_Intel_Handler {
 
 	public function __construct() {
-			add_shortcode( 'coordenadas_militar', array( $this, 'shortcode_coordenadas_militares' ) );
-			add_shortcode( 'hora_zulu', array( $this, 'render_hora_zulu' ) );
-		}
+		add_shortcode( 'coordenadas_militar', array( $this, 'shortcode_coordenadas_militares' ) );
+		add_shortcode( 'hora_zulu', array( $this, 'render_hora_zulu' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_zulu_js' ) );
+	}
+
+	public function enqueue_zulu_js() {
+		wp_enqueue_script( 'rmm-zulu-js', RMM_PLUGIN_URL . 'assets/js/rmm-zulu.js', array(), RMM_VERSION, true );
+	}
 
 	public function shortcode_coordenadas_militares( $atts ) {
 		// 1. Configurar atributos por defecto
@@ -116,47 +121,15 @@ class RMM_Intel_Handler {
 			 */
 			public function render_hora_zulu( $atts ) {
 				$atts = shortcode_atts( array( 'color' => '#CFDC35' ), $atts );
-				$uid = 'rmm-zulu-' . uniqid();
-
-				// Marcar que necesitamos el JS en el footer
-				add_action( 'wp_footer', array( $this, 'output_zulu_js' ), 99 );
 
 				ob_start();
 				?>
-				<div id="<?php echo $uid; ?>" class="rmm-zulu-time" style="display:inline-block;font-family:'JetBrains Mono','SF Mono',monospace;font-size:0.85rem;color:<?php echo esc_attr( $atts['color'] ); ?>;background:rgba(0,0,0,0.3);border:1px solid rgba(207,220,53,0.3);border-radius:4px;padding:6px 14px;letter-spacing:0.06em;">
+				<div class="rmm-zulu-time" style="display:inline-block;font-family:'JetBrains Mono','SF Mono',monospace;font-size:0.85rem;color:<?php echo esc_attr( $atts['color'] ); ?>;background:rgba(0,0,0,0.3);border:1px solid rgba(207,220,53,0.3);border-radius:4px;padding:6px 14px;letter-spacing:0.06em;">
 					<span style="opacity:0.6;font-size:0.65rem;text-transform:uppercase;">⌚ HORA LOCAL •</span>
 					<strong class="rmm-zulu-time-val" style="font-size:1.1rem;letter-spacing:0.08em;">--:--</strong>
 					<span class="rmm-zulu-dtg" style="font-size:0.6rem;opacity:0.5;margin-left:6px;">------ --</span>
 				</div>
 				<?php
 				return ob_get_clean();
-			}
-
-			public function output_zulu_js() {
-				// Evitar duplicados
-				if ( defined( 'RMM_ZULU_JS_DONE' ) ) return;
-				define( 'RMM_ZULU_JS_DONE', true );
-				?>
-				<script>
-				(function() {
-					function pad(n) { return n < 10 ? '0' + n : n; }
-					var months = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-					function update() {
-						var now = new Date();
-						var hh = pad(now.getHours());
-						var mm = pad(now.getMinutes());
-						var dtg = pad(now.getDate()) + hh + mm + 'L ' + months[now.getMonth()] + ' ' + now.getFullYear();
-						document.querySelectorAll('.rmm-zulu-time').forEach(function(el) {
-							var t = el.querySelector('.rmm-zulu-time-val');
-							var d = el.querySelector('.rmm-zulu-dtg');
-							if (t) t.textContent = hh + ':' + mm;
-							if (d) d.textContent = dtg;
-						});
-					}
-					update();
-					setInterval(update, 60000);
-				})();
-				</script>
-				<?php
 			}
 		}
