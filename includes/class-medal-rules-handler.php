@@ -29,6 +29,16 @@ class RMM_Medal_Rules_Handler {
 		// Mostrar medallas en perfil de usuario admin + botón quitar
 		add_action( 'show_user_profile', array( $this, 'render_user_medals_admin' ) );
 		add_action( 'edit_user_profile', array( $this, 'render_user_medals_admin' ) );
+		add_action( 'init', array( $this, 'ensure_table' ) );
+	}
+
+	public function ensure_table() {
+		global $wpdb;
+		$table = $wpdb->prefix . 'rmm_medal_rules';
+		if ( $wpdb->get_var( "SHOW TABLES LIKE '$table'" ) !== $table ) {
+			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+			RMM_DB_Handler::create_tables();
+		}
 	}
 
 	public function register_admin_page() {

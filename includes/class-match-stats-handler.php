@@ -10,6 +10,16 @@ class RMM_Match_Stats_Handler {
 	public function __construct() {
 		add_shortcode( 'rmm_last_match', array( $this, 'render_last_match' ) );
 		add_action( 'rmm_after_telemetry_update', array( $this, 'track_match_session' ), 10, 2 );
+		add_action( 'init', array( $this, 'ensure_table' ) );
+	}
+
+	public function ensure_table() {
+		global $wpdb;
+		$table = $wpdb->prefix . 'rmm_match_sessions';
+		if ( $wpdb->get_var( "SHOW TABLES LIKE '$table'" ) !== $table ) {
+			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+			RMM_DB_Handler::create_tables();
+		}
 	}
 
 	public function render_last_match( $atts ) {
