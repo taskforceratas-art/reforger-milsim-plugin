@@ -15,6 +15,7 @@ class RMM_Admin_Page {
 		add_action( 'wp_ajax_rmm_get_preset_details', array( $this, 'ajax_get_preset_details' ) );
 		add_action( 'wp_ajax_rmm_load_preset', array( $this, 'ajax_load_preset' ) );
 		add_action( 'wp_ajax_rmm_save_server_preset', array( $this, 'ajax_save_server_preset' ) );
+		add_action( 'wp_ajax_rmm_upload_orbatlink_config', array( $this, 'ajax_upload_orbatlink_config' ) );
 		add_action( 'wp_ajax_rmm_send_telegram_aviso', array( $this, 'ajax_send_telegram_aviso' ) );
 		add_action( 'wp_ajax_rmm_server_power_action', array( $this, 'ajax_server_power_action' ) );
 		add_action( 'admin_menu', array( $this, 'restrict_admin_menu' ), 999 );
@@ -557,6 +558,19 @@ class RMM_Admin_Page {
 			update_option( 'rmm_whatsapp_apikey', sanitize_text_field( trim( $_POST['rmm_whatsapp_apikey'] ) ) );
 			update_option( 'rmm_telemetry_auth_key', sanitize_text_field( trim( $_POST['rmm_telemetry_auth_key'] ) ) );
 
+			// TFR ORBAT Link
+			update_option( 'rmm_orbatlink_enabled', isset( $_POST['rmm_orbatlink_enabled'] ) ? '1' : '0' );
+			update_option( 'rmm_orbatlink_base_url', esc_url_raw( trim( $_POST['rmm_orbatlink_base_url'] ) ) );
+			update_option( 'rmm_orbatlink_route', sanitize_text_field( trim( $_POST['rmm_orbatlink_route'] ) ) );
+			update_option( 'rmm_orbatlink_token', sanitize_text_field( trim( $_POST['rmm_orbatlink_token'] ) ) );
+			update_option( 'rmm_orbatlink_debug', isset( $_POST['rmm_orbatlink_debug'] ) ? '1' : '0' );
+			update_option( 'rmm_orbatlink_send_disconnect', isset( $_POST['rmm_orbatlink_send_disconnect'] ) ? '1' : '0' );
+			update_option( 'rmm_orbatlink_send_gameend', isset( $_POST['rmm_orbatlink_send_gameend'] ) ? '1' : '0' );
+			update_option( 'rmm_orbatlink_send_test', isset( $_POST['rmm_orbatlink_send_test'] ) ? '1' : '0' );
+			update_option( 'rmm_orbatlink_test_delay', intval( $_POST['rmm_orbatlink_test_delay'] ) ?: 5000 );
+			update_option( 'rmm_orbatlink_send_periodic', isset( $_POST['rmm_orbatlink_send_periodic'] ) ? '1' : '0' );
+			update_option( 'rmm_orbatlink_interval', intval( $_POST['rmm_orbatlink_interval'] ) ?: 5 );
+
 			// Roles
 			$role_admin  = trim( $_POST['rmm_telegram_role_admin'] );
 			$role_user   = trim( $_POST['rmm_telegram_role_user'] );
@@ -858,6 +872,61 @@ class RMM_Admin_Page {
 					</div>
 				</div>
 
+				<!-- Section: TFR ORBAT Link -->
+				<div class="rmm-section">
+					<h2>🔗 TFR ORBAT Link (Addon de Estadisticas)</h2>
+					<p class="rmm-section-desc">Configuracion del addon TFR ORBAT Link que se sube automaticamente al servidor de juego. Este addon envia telemetria de combate (bajas, muertes, disparos, curaciones) al endpoint configurado.</p>
+
+					<div class="rmm-form-group">
+						<label><input type="checkbox" name="rmm_orbatlink_enabled" value="1" <?php checked( get_option( 'rmm_orbatlink_enabled', '1' ), '1' ); ?>> Activar ORBAT Link</label>
+						<p class="description">Si esta activo, el mod se añade automaticamente a todas las partidas y se sube su archivo de configuracion.</p>
+					</div>
+
+					<div class="rmm-form-grid">
+						<div class="rmm-form-group">
+							<label for="rmm_orbatlink_base_url">Base URL</label>
+							<input type="url" name="rmm_orbatlink_base_url" value="<?php echo esc_url( get_option( 'rmm_orbatlink_base_url', 'https://tfrpruebas.gure.party' ) ); ?>" class="regular-text">
+						</div>
+						<div class="rmm-form-group">
+							<label for="rmm_orbatlink_route">Ruta del Endpoint</label>
+							<input type="text" name="rmm_orbatlink_route" value="<?php echo esc_attr( get_option( 'rmm_orbatlink_route', '/wp-json/clan/v1/telemetry/push' ) ); ?>" class="regular-text">
+						</div>
+						<div class="rmm-form-group">
+							<label for="rmm_orbatlink_token">Bearer Token</label>
+							<input type="text" name="rmm_orbatlink_token" value="<?php echo esc_attr( get_option( 'rmm_orbatlink_token', $telemetry_key ) ); ?>" class="regular-text">
+						</div>
+					</div>
+
+					<div class="rmm-form-grid rmm-grid-3">
+						<div class="rmm-form-group">
+							<label><input type="checkbox" name="rmm_orbatlink_debug" value="1" <?php checked( get_option( 'rmm_orbatlink_debug', '1' ), '1' ); ?>> Debug</label>
+						</div>
+						<div class="rmm-form-group">
+							<label><input type="checkbox" name="rmm_orbatlink_send_disconnect" value="1" <?php checked( get_option( 'rmm_orbatlink_send_disconnect', '1' ), '1' ); ?>> Enviar al desconectar</label>
+						</div>
+						<div class="rmm-form-group">
+							<label><input type="checkbox" name="rmm_orbatlink_send_gameend" value="1" <?php checked( get_option( 'rmm_orbatlink_send_gameend', '1' ), '1' ); ?>> Enviar al finalizar partida</label>
+						</div>
+						<div class="rmm-form-group">
+							<label><input type="checkbox" name="rmm_orbatlink_send_periodic" value="1" <?php checked( get_option( 'rmm_orbatlink_send_periodic', '1' ), '1' ); ?>> Envio periodico</label>
+						</div>
+						<div class="rmm-form-group">
+							<label><input type="checkbox" name="rmm_orbatlink_send_test" value="1" <?php checked( get_option( 'rmm_orbatlink_send_test', '0' ), '1' ); ?>> Enviar test al registrar</label>
+						</div>
+					</div>
+
+					<div class="rmm-form-grid">
+						<div class="rmm-form-group">
+							<label for="rmm_orbatlink_interval">Intervalo de envio (minutos)</label>
+							<input type="number" name="rmm_orbatlink_interval" value="<?php echo intval( get_option( 'rmm_orbatlink_interval', '5' ) ); ?>" min="1" max="60" class="small-text">
+						</div>
+						<div class="rmm-form-group">
+							<label for="rmm_orbatlink_test_delay">Delay del test (ms)</label>
+							<input type="number" name="rmm_orbatlink_test_delay" value="<?php echo intval( get_option( 'rmm_orbatlink_test_delay', '5000' ) ); ?>" min="0" class="small-text">
+						</div>
+					</div>
+				</div>
+
 				</div> <!-- Closing integrations-pane -->
 
 				<!-- Tab 2: Roles (Tipos de Slot) -->
@@ -1145,6 +1214,7 @@ class RMM_Admin_Page {
 							</div>
 
 							<div class="launcher-actions">
+								<button id="btn_upload_orbatlink" class="button-launch" style="background:#6366f1;box-shadow:0 4px 14px rgba(99,102,241,0.3);margin-right:10px;">🔗 Subir Config ORBAT Link</button>
 								<button id="btn_launch_server" class="button-launch">🚀 Lanzar Partida en Servidor</button>
 							</div>
 						</div>
@@ -1725,6 +1795,26 @@ class RMM_Admin_Page {
 				});
 			});
 
+			// Boton subir solo config ORBAT Link
+			$('#btn_upload_orbatlink').on('click', function() {
+				const serverId = serverSelect.val();
+				if ( ! serverId ) { alert('Selecciona un servidor primero'); return; }
+				const btn = $(this);
+				btn.prop('disabled', true).text('Subiendo...');
+				logConsole('🔹 Subiendo config de ORBAT Link...');
+				$.post(ajaxurl, {
+					action: 'rmm_upload_orbatlink_config',
+					server_id: serverId
+				}, function(res) {
+					if (res.success) {
+						logConsole('✅ Config de ORBAT Link subido correctamente');
+					} else {
+						logConsole('❌ Error: ' + (res.data || 'Desconocido'), true);
+					}
+					btn.prop('disabled', false).text('🔗 Subir Config ORBAT Link');
+				});
+			});
+
 			btnLaunch.on('click', function() {
 				const serverId = serverSelect.val();
 				const filename = presetSelect.val();
@@ -1783,7 +1873,8 @@ class RMM_Admin_Page {
 				{ name: "Wirecutters 2", id: "62F364B35E9B51B0" },
 				{ name: "2-7 Vehicle Mirrors", "id": "661949530F712567" },
 				{ name: "TacticalAnimationOverhaul TEST", "id": "61ECB5EFAA346151" },
-				{ name: "BetterSounds 4.0 Alpha", id: "597C0CF3A7AA8A99" }
+				{ name: "BetterSounds 4.0 Alpha", id: "597C0CF3A7AA8A99" },
+				{ name: "TFR ORBAT Link", id: "695EADEB970201A6" }
 			];
 
 			const FRIENDLY_ADDONS = [
@@ -2528,6 +2619,28 @@ class RMM_Admin_Page {
 			wp_send_json_success();
 		} catch ( Exception $e ) {
 			wp_send_json_error( array( 'error' => $e->getMessage() ) );
+		}
+	}
+
+	/**
+	 * AJAX: Subir config de ORBAT Link manualmente al servidor
+	 */
+	public function ajax_upload_orbatlink_config() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'Acceso denegado', 'reforger-milsim' ) );
+		}
+		
+		$server_id = sanitize_text_field( $_POST['server_id'] );
+		if ( empty( $server_id ) ) {
+			wp_send_json_error( __( 'Selecciona un servidor', 'reforger-milsim' ) );
+		}
+		
+		try {
+			$ptero = new RMM_Pterodactyl_Handler();
+			$ptero->upload_orbat_link_config( $server_id );
+			wp_send_json_success( __( 'Config de ORBAT Link subido correctamente', 'reforger-milsim' ) );
+		} catch ( Exception $e ) {
+			wp_send_json_error( $e->getMessage() );
 		}
 	}
 

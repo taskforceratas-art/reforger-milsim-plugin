@@ -378,6 +378,22 @@ class RMM_Pterodactyl_Handler {
 			throw new Exception( __( 'El preset no contiene un "scenarioId" válido.', 'reforger-milsim' ) );
 		}
 
+		// Inyectar mod TFR ORBAT Link si esta habilitado
+		if ( get_option( 'rmm_orbatlink_enabled', '1' ) === '1' ) {
+			$orbatlink_id = '695EADEB970201A6';
+			$has_orbatlink = false;
+			foreach ( $mods as $m ) {
+				if ( isset( $m['modId'] ) && strtoupper( $m['modId'] ) === $orbatlink_id ) {
+					$has_orbatlink = true;
+					break;
+				}
+			}
+			if ( ! $has_orbatlink ) {
+				$mods[] = array( 'modId' => $orbatlink_id, 'name' => 'TFR ORBAT Link' );
+				$progress[] = __( '🔹 Mod TFR ORBAT Link añadido automaticamente.', 'reforger-milsim' );
+			}
+		}
+
 		$config_data['game']['mods']       = $mods;
 		$config_data['game']['scenarioId'] = $scenario;
 
@@ -428,6 +444,41 @@ class RMM_Pterodactyl_Handler {
 		$this->notify_telegram( $msg );
 
 		$progress[] = __( '✅ ¡Servidor configurado y reiniciado con éxito!', 'reforger-milsim' );
+
+		// Subir config de TFR ORBAT Link si esta habilitado
+		if ( get_option( 'rmm_orbatlink_enabled', '1' ) === '1' ) {
+			try {
+				$progress[] = __( '🔹 Subiendo config de TFR ORBAT Link...', 'reforger-milsim' );
+				$this->upload_orbat_link_config( $server_id );
+				$progress[] = __( '✅ Config de ORBAT Link subido.', 'reforger-milsim' );
+			} catch ( Exception $e ) {
+				$progress[] = '⚠️ ' . $e->getMessage();
+			}
+		}
+
 		return true;
+	}
+
+	/**
+	 * Subir archivo de configuracion del addon TFR ORBAT Link al servidor
+	 */
+	public function upload_orbat_link_config( $server_id ) {
+		$config = array(
+			'm_sBaseUrl'            => get_option( 'rmm_orbatlink_base_url', 'https://tfrpruebas.gure.party' ),
+			'm_sRoute'              => get_option( 'rmm_orbatlink_route', '/wp-json/clan/v1/telemetry/push' ),
+			'm_sBearerToken'        => get_option( 'rmm_orbatlink_token', get_option( 'rmm_telemetry_auth_key', 'TFR_6F8C2E9A1D4B47C99A1E7D6F3B2A8C10' ) ),
+			'm_bDebug'              => get_option( 'rmm_orbatlink_debug', '1' ) === '1',
+			'm_bSendOnDisconnect'   => get_option( 'rmm_orbatlink_send_disconnect', '1' ) === '1',
+			'm_bSendOnGameEnd'      => get_option( 'rmm_orbatlink_send_gameend', '1' ) === '1',
+			'm_bSendTestOnRegister' => get_option( 'rmm_orbatlink_send_test', '0' ) === '1',
+			'm_iSendTestDelayMs'    => intval( get_option( 'rmm_orbatlink_test_delay', '5000' ) ),
+			'm_bSendPeriodic'       => get_option( 'rmm_orbatlink_send_periodic', '1' ) === '1',
+			'm_iSendIntervalMinutes'=> intval( get_option( 'rmm_orbatlink_interval', '5' ) ),
+		);
+
+		$json = json_encode( $config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+		$path = '/profile/TFR_ORBATLink/config.json';
+
+		$this->upload_file( $server_id, $path, $json );
 	}
 }
