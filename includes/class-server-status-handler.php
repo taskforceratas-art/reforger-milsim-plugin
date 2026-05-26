@@ -467,7 +467,8 @@ class RMM_Server_Status_Handler {
 		$allowed = get_option( 'rmm_server_manager_roles', array( 'fundador', 'editor', 'administrator' ) );
 		if ( ! is_array( $allowed ) ) $allowed = array( 'fundador', 'editor', 'administrator' );
 		if ( ! array_intersect( $allowed, (array) $user->roles ) ) {
-			return '<div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:24px;text-align:center;color:#8b949e;font-family:Inter,sans-serif;">Acceso restringido.</div>';
+			$login_form = is_user_logged_in() ? '' : '<div style="max-width:320px;margin:20px auto 0;">' . wp_login_form( array( 'echo' => false, 'redirect' => get_permalink() ) ) . '</div>';
+			return '<div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:24px;text-align:center;color:#8b949e;font-family:Inter,sans-serif;">Acceso restringido.' . $login_form . '</div>';
 		}
 
 		$admin_page = new RMM_Admin_Page();
