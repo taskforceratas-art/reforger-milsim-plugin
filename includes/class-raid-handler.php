@@ -1176,17 +1176,22 @@ class RMM_Raid_Handler {
 			wp_send_json_error( 'Evento no encontrado' );
 		}
 		
-		// Eliminar flag para permitir reenvio
-		delete_post_meta( $post_id, '_raid_notified' );
+		$estado = get_post_meta( $post_id, 'estado', true );
 		
-		// Llamar al metodo de notificacion
-		$this->notify_raid_channel_on_event( $post_id, $post );
-		
-		// Verificar si se envio
-		if ( get_post_meta( $post_id, '_raid_notified', true ) ) {
-			wp_send_json_success( 'Enviado correctamente' );
+		if ( $estado === 'cancelada' ) {
+			// Reenviar como cancelacion (edita el mensaje original si existe)
+			$this->handle_event_cancellation( $post_id, $post, true );
+			wp_send_json_success( 'Mensaje de cancelacion enviado/actualizado en Telegram' );
 		} else {
-			wp_send_json_error( 'No se pudo enviar. Verifica que el token y chat ID de Telegram esten configurados en Ajustes.' );
+			// Eliminar flag para permitir reenvio del mensaje original
+			delete_post_meta( $post_id, '_raid_notified' );
+			$this->notify_raid_channel_on_event( $post_id, $post );
+			
+			if ( get_post_meta( $post_id, '_raid_notified', true ) ) {
+				wp_send_json_success( 'Enviado correctamente' );
+			} else {
+				wp_send_json_error( 'No se pudo enviar. Verifica token y chat ID en Ajustes.' );
+			}
 		}
 	}
 
