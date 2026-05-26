@@ -1240,9 +1240,18 @@ class RMM_Admin_Page {
 							</div>
 
 							<div class="launcher-actions">
-								<button id="btn_upload_orbatlink" class="button-launch" style="background:#6366f1;box-shadow:0 4px 14px rgba(99,102,241,0.3);margin-right:10px;">🔗 Subir Config ORBAT Link</button>
-								<button id="btn_launch_server" class="button-launch">🚀 Lanzar Partida en Servidor</button>
-							</div>
+														<div class="rmm-toggle-row" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+															<label class="rmm-switch">
+																<input type="checkbox" id="tg_notify_switch" checked>
+																<span class="rmm-slider round"></span>
+															</label>
+															<span style="font-size:0.75rem;color:#94a3b8;">📢 Notificar a Telegram</span>
+														</div>
+														<div class="launcher-buttons">
+															<button id="btn_upload_orbatlink" class="button-launch" style="background:#6366f1;box-shadow:0 4px 14px rgba(99,102,241,0.3);">🔗 Subir Config ORBAT Link</button>
+															<button id="btn_launch_server" class="button-launch">🚀 Lanzar Partida en Servidor</button>
+														</div>
+													</div>
 						</div>
 
 						<!-- Live Console Status Output -->
@@ -1592,7 +1601,12 @@ class RMM_Admin_Page {
 		.mod-pill code { color: #38bdf8; font-weight: 600; font-size: 0.9em; margin-right: 15px; }
 		.mod-pill span { color: #cbd5e1; font-size: 0.9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-		.launcher-actions { margin-top: 25px; display: flex; justify-content: flex-end; }
+		.launcher-actions { margin-top: 25px; display: flex; flex-direction: column; align-items: flex-end; }
+				.launcher-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+				@media (max-width: 600px) {
+					.launcher-buttons { flex-direction: column; width: 100%; }
+					.launcher-buttons .button-launch { width: 100%; text-align: center; }
+				}
 		.button-launch { background: #10b981; color: #fff; border: 0; padding: 14px 28px; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3); }
 		.button-launch:hover { background: #059669; transform: translateY(-1px); }
 
@@ -1863,10 +1877,11 @@ class RMM_Admin_Page {
 				btnLaunch.prop('disabled', true);
 
 				$.post(ajaxurl, {
-					action: 'rmm_load_preset',
-					server_id: serverId,
-					filename: filename
-				}, function(res) {
+								action: 'rmm_load_preset',
+								server_id: serverId,
+								filename: filename,
+								notify_telegram: $('#tg_notify_switch').is(':checked') ? 1 : 0
+							}, function(res) {
 					if (res.data && res.data.progress) {
 						res.data.progress.forEach(function(step) {
 							logConsole(step);
@@ -2588,21 +2603,22 @@ class RMM_Admin_Page {
 	 * AJAX: Run preset load sequence
 	 */
 	public function ajax_load_preset() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( __( 'Acceso denegado', 'reforger-milsim' ) );
-		}
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( __( 'Acceso denegado', 'reforger-milsim' ) );
+			}
 
-		$server_id = sanitize_text_field( $_POST['server_id'] );
-		$filename  = sanitize_text_field( $_POST['filename'] );
+			$server_id = sanitize_text_field( $_POST['server_id'] );
+			$filename  = sanitize_text_field( $_POST['filename'] );
+			$notify    = ! empty( $_POST['notify_telegram'] );
 
-		if ( empty( $server_id ) || empty( $filename ) ) {
-			wp_send_json_error( __( 'Parámetros no válidos', 'reforger-milsim' ) );
-		}
+			if ( empty( $server_id ) || empty( $filename ) ) {
+				wp_send_json_error( __( 'Parámetros no válidos', 'reforger-milsim' ) );
+			}
 
-		$progress = array();
-		try {
-			$ptero = new RMM_Pterodactyl_Handler();
-			$ptero->load_preset( $server_id, $filename, $progress );
+			$progress = array();
+			try {
+				$ptero = new RMM_Pterodactyl_Handler();
+				$ptero->load_preset( $server_id, $filename, $progress, $notify );
 			wp_send_json_success( array( 'progress' => $progress ) );
 		} catch ( Exception $e ) {
 			$progress[] = '❌ Error: ' . $e->getMessage();

@@ -335,7 +335,7 @@ class RMM_Pterodactyl_Handler {
 	/**
 	 * Performs the complete server preset loading sequence
 	 */
-	public function load_preset( $server_id, $filename, &$progress = array() ) {
+	public function load_preset( $server_id, $filename, &$progress = array(), $notify_telegram = true ) {
 		$progress[] = __( '🔹 Iniciando proceso de carga de partida...', 'reforger-milsim' );
 
 		// Paso 1: Descargar config.json original
@@ -428,20 +428,24 @@ class RMM_Pterodactyl_Handler {
 		$progress[] = __( '♻️ Reiniciando servidor Pterodactyl...', 'reforger-milsim' );
 		$this->send_power_action( $server_id, 'restart' );
 
-		// Paso 7: Notificar a Telegram
-		$progress[] = __( '📢 Enviando notificación a Telegram...', 'reforger-milsim' );
-		
-		$num_mods = count( $mods );
-		$has_persist = ( $persistence && is_array( $persistence ) ) ? '✅ Sí' : '❌ No';
-		
-		$msg  = "📢 *Servidor Reforger Actualizado desde la Web*\n\n";
-		$msg .= "🎮 Partida: *{$name}*\n";
-		$msg .= "🗺️ Escenario: `{$scenario}`\n";
-		$msg .= "🧩 Mods activos: *{$num_mods}*\n";
-		$msg .= "💾 Persistencia: *{$has_persist}*\n\n";
-		$msg .= "♻️ *Servidor reiniciado y aplicando la nueva configuración.*";
-		
-		$this->notify_telegram( $msg );
+		// Paso 7: Notificar a Telegram (si está activado)
+				if ( $notify_telegram ) {
+					$progress[] = __( '📢 Enviando notificación a Telegram...', 'reforger-milsim' );
+			
+					$num_mods = count( $mods );
+					$has_persist = ( $persistence && is_array( $persistence ) ) ? '✅ Sí' : '❌ No';
+			
+					$msg  = "📢 *Servidor Reforger Actualizado desde la Web*\n\n";
+					$msg .= "🎮 Partida: *{$name}*\n";
+					$msg .= "🗺️ Escenario: `{$scenario}`\n";
+					$msg .= "🧩 Mods activos: *{$num_mods}*\n";
+					$msg .= "💾 Persistencia: *{$has_persist}*\n\n";
+					$msg .= "♻️ *Servidor reiniciado y aplicando la nueva configuración.*";
+			
+					$this->notify_telegram( $msg );
+				} else {
+					$progress[] = __( '🔇 Notificación Telegram omitida (switch desactivado).', 'reforger-milsim' );
+				}
 
 		$progress[] = __( '✅ ¡Servidor configurado y reiniciado con éxito!', 'reforger-milsim' );
 
