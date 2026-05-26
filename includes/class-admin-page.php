@@ -1589,8 +1589,20 @@ class RMM_Admin_Page {
 		.rmm-preset-details-box { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 25px; margin-top: 30px; }
 		.rmm-preset-details-box h3 { margin-top: 0; font-size: 1.5em; color: #10b981; }
 		.rmm-preset-details-box .desc { color: #94a3b8; font-size: 0.95em; margin-bottom: 20px; }
-		.meta-row { display: flex; gap: 30px; font-size: 0.9em; padding-bottom: 15px; border-bottom: 1px solid #334155; margin-bottom: 20px; }
-		.meta-item code { background: #334155; color: #cbd5e1; padding: 3px 8px; border-radius: 4px; font-size: 0.95em; }
+		.meta-row { display: flex; gap: 30px; font-size: 0.9em; padding-bottom: 15px; border-bottom: 1px solid #334155; margin-bottom: 20px; flex-wrap: wrap; }
+				.meta-item { flex: 1; min-width: 200px; }
+				.meta-item code { background: #334155; color: #cbd5e1; padding: 3px 8px; border-radius: 4px; font-size: 0.9em; word-break: break-all; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+				@media (max-width: 600px) {
+					.meta-row { flex-direction: column; gap: 10px; }
+					.meta-item { min-width: 100%; }
+					.meta-item code { max-width: 200px; }
+					.mods-scroll { max-height: 180px; font-size: 0.8em; }
+					.rmm-preset-details-box { padding: 16px; }
+					.rmm-preset-details-box h3 { font-size: 1.2em; }
+					.mod-pill { flex-wrap: wrap; }
+					.mod-pill code { margin-right: 8px; font-size: 0.8em; }
+					.mod-pill span { font-size: 0.8em; }
+				}
 		.badge { background: #10b981; color: #fff; padding: 3px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600; }
 		.badge.disabled { background: #ef4444; }
 
