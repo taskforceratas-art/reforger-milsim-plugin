@@ -153,6 +153,12 @@ class RMM_Admin_Page {
 				'params'      => 'posts_per_page="8"',
 			),
 			array(
+				'shortcode'   => '[rmm_server_manager]',
+				'description' => 'Gestor completo de servidor en frontend (lanzador de partidas, generador JSON, avisos Telegram). Solo visible para Fundador, Activo, Aliado y Admin.',
+				'context'     => 'Global (pagina restringida)',
+				'params'      => '—',
+			),
+			array(
 				'shortcode'   => '[clan_lista_miembros]',
 				'description' => 'Muestra una cuadrícula táctica de miembros con su avatar, nombre, pasador y overlay táctico de estadísticas al pasar el ratón. Al hacer clic, lleva al expediente detallado.',
 				'context'     => 'Global (cualquier página)',
