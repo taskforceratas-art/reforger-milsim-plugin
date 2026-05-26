@@ -1181,7 +1181,25 @@ class RMM_Raid_Handler {
 		if ( $estado === 'cancelada' ) {
 			// Reenviar como cancelacion (edita el mensaje original si existe)
 			$this->handle_event_cancellation( $post_id, $post, true );
-			wp_send_json_success( 'Mensaje de cancelacion enviado/actualizado en Telegram' );
+			
+			// Enviar tambien un mensaje nuevo de aviso de cambios
+			$token   = get_option( 'rmm_raid_telegram_token', '' );
+			$chat_id = get_option( 'rmm_raid_telegram_chat_id', '-1003157817672' );
+			if ( $token && $chat_id ) {
+				$fecha = get_post_meta( $post_id, 'fecha_inicio', true );
+				$fecha_txt = $fecha ? date_i18n( 'j \d\e F \a \l\a\s H:i', strtotime( str_replace('T',' ',$fecha) ) ) : 'fecha desconocida';
+				$msg  = "🔄 <b>Cambios en la partida del " . esc_html( $fecha_txt ) . "</b>
+";
+				$msg .= "🎮 " . esc_html( $post->post_title ) . "
+";
+				$msg .= "
+🔗 " . get_permalink( $post_id );
+				wp_remote_post( "https://api.telegram.org/bot{$token}/sendMessage", array(
+					'timeout' => 15, 'sslverify' => false,
+					'body' => array( 'chat_id' => $chat_id, 'text' => $msg, 'parse_mode' => 'HTML' ),
+				));
+			}
+			wp_send_json_success( 'Mensaje de cancelacion actualizado y aviso de cambios enviado a Telegram' );
 		} else {
 			// Eliminar flag para permitir reenvio del mensaje original
 			delete_post_meta( $post_id, '_raid_notified' );
