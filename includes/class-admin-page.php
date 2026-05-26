@@ -1261,7 +1261,7 @@ class RMM_Admin_Page {
 					<div class="rmm-section">
 						<div class="d-flex justify-content-between align-items-center mb-3">
 							<h2>🛠️ Crear y Guardar Configuración (JSON)</h2>
-							<div>
+							<div style="display:none;">
 								<button type="button" class="rmm-btn btn-outline-info" id="btnLoadPreset">📂 Cargar de LocalStorage</button>
 								<button type="button" class="rmm-btn btn-outline-success" id="btnSavePreset">💾 Guardar en LocalStorage</button>
 							</div>
