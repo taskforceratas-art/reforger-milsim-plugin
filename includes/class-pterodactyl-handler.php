@@ -424,9 +424,23 @@ class RMM_Pterodactyl_Handler {
 		$progress[] = __( '🔹 Actualizando variable startup SCENARIO_ID...', 'reforger-milsim' );
 		$this->update_startup_variable( $server_id, 'SCENARIO_ID', $scenario );
 
-		// Paso 6: Reiniciar Servidor
-		$progress[] = __( '♻️ Reiniciando servidor Pterodactyl...', 'reforger-milsim' );
-		$this->send_power_action( $server_id, 'restart' );
+		// Paso 6: Iniciar o Reiniciar Servidor
+				$progress[] = __( '♻️ Verificando estado del servidor...', 'reforger-milsim' );
+				try {
+					$resources = $this->get_server_resources( $server_id );
+					$state = $resources['attributes']['current_state'] ?? 'offline';
+					if ( $state === 'running' ) {
+						$progress[] = __( '♻️ Reiniciando servidor Pterodactyl...', 'reforger-milsim' );
+						$this->send_power_action( $server_id, 'restart' );
+					} else {
+						$progress[] = __( '🚀 Iniciando servidor Pterodactyl...', 'reforger-milsim' );
+						$this->send_power_action( $server_id, 'start' );
+					}
+				} catch ( Exception $e ) {
+					// Si falla la verificación, intentar start de todas formas
+					$progress[] = __( '🚀 Iniciando servidor...', 'reforger-milsim' );
+					$this->send_power_action( $server_id, 'start' );
+				}
 
 		// Paso 7: Notificar a Telegram (si está activado)
 				if ( $notify_telegram ) {
@@ -481,7 +495,7 @@ class RMM_Pterodactyl_Handler {
 		);
 
 		$json = json_encode( $config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
-		$path = '/profile/TFR_ORBATLink/config.json';
+		$path = '/profile/profile/TFR_ORBATLink/config.json';
 
 		$this->upload_file( $server_id, $path, $json );
 	}
