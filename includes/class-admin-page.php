@@ -1135,10 +1135,13 @@ class RMM_Admin_Page {
 		.rmm-grid-3 { grid-template-columns: repeat(3, 1fr); }
 
 		/* Tabs System */
-		.rmm-nav-tabs { list-style: none; padding: 0; margin: 0 0 30px 0; display: flex; border-bottom: 2px solid #cbd5e1; }
-		.rmm-nav-tabs li { margin: 0; }
-		.rmm-nav-tabs li a { display: block; padding: 12px 24px; color: #64748b; text-decoration: none; border-bottom: 2px solid transparent; font-weight: 600; font-size: 1.05em; transition: all 0.2s; margin-bottom: -2px; }
-		.rmm-nav-tabs li.active a, .rmm-nav-tabs li a:hover { color: #10b981; border-bottom-color: #10b981; }
+				.rmm-nav-tabs { list-style: none; padding: 0; margin: 0 0 30px 0; display: flex; border-bottom: 2px solid #cbd5e1; flex-wrap: wrap; }
+				.rmm-nav-tabs li { margin: 0; }
+				.rmm-nav-tabs li a { display: block; padding: 12px 24px; color: #64748b; text-decoration: none; border-bottom: 2px solid transparent; font-weight: 600; font-size: 1.05em; transition: all 0.2s; margin-bottom: -2px; white-space: nowrap; }
+				.rmm-nav-tabs li.active a, .rmm-nav-tabs li a:hover { color: #10b981; border-bottom-color: #10b981; }
+				@media (max-width: 600px) {
+					.rmm-nav-tabs li a { padding: 8px 12px; font-size: 0.78em; }
+				}
 
 		.rmm-tab-pane { display: none; }
 		.rmm-tab-pane.active { display: block; }
@@ -1559,10 +1562,13 @@ class RMM_Admin_Page {
 		.rmm-dark-theme h1, .rmm-dark-theme h2, .rmm-dark-theme h3, .rmm-dark-theme h4 { color: #f8fafc; }
 		.rmm-dark-theme .rmm-admin-header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-color: #334155; }
 		
-		.rmm-nav-tabs { list-style: none; padding: 0; margin: 0 0 20px 0; display: flex; border-bottom: 2px solid #334155; }
-		.rmm-nav-tabs li { margin: 0; }
-		.rmm-nav-tabs li a { display: block; padding: 12px 24px; color: #94a3b8; text-decoration: none; border-bottom: 2px solid transparent; font-weight: 600; font-size: 1.05em; transition: all 0.2s; margin-bottom: -2px; }
-		.rmm-nav-tabs li.active a, .rmm-nav-tabs li a:hover { color: #10b981; border-bottom-color: #10b981; }
+		.rmm-nav-tabs { list-style: none; padding: 0; margin: 0 0 20px 0; display: flex; border-bottom: 2px solid #334155; flex-wrap: wrap; }
+				.rmm-nav-tabs li { margin: 0; }
+				.rmm-nav-tabs li a { display: block; padding: 12px 24px; color: #94a3b8; text-decoration: none; border-bottom: 2px solid transparent; font-weight: 600; font-size: 1.05em; transition: all 0.2s; margin-bottom: -2px; white-space: nowrap; }
+				.rmm-nav-tabs li.active a, .rmm-nav-tabs li a:hover { color: #10b981; border-bottom-color: #10b981; }
+				@media (max-width: 600px) {
+					.rmm-nav-tabs li a { padding: 8px 12px; font-size: 0.78em; }
+				}
 
 		.rmm-tab-pane { display: none; }
 		.rmm-tab-pane.active { display: block; }
