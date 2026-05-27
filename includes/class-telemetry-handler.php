@@ -221,6 +221,8 @@ class RMM_Telemetry_Handler {
 			'rmm_veh_sea'     => array( 'vehicles_destroyed_sea' ),
 			'rmm_veh_static'  => array( 'vehicles_destroyed_static' ),
 			'rmm_explosives'  => array( 'placed_explosives_detonated' ),
+			'rmm_pos_x'      => array( 'pos_x' ),
+			'rmm_pos_y'      => array( 'pos_y' ),
 		);
 
 		// Convertir tiempo a horas como float (NO int) para no perder precisión
@@ -243,10 +245,11 @@ class RMM_Telemetry_Handler {
 
 					if ( $value === null ) continue;
 
-					// Para horas usamos floatval para preservar minutos, para el resto intval
-					if ( $meta_key === 'rmm_hours' ) {
+					// Para horas y posiciones usamos floatval, el resto intval
+					if ( $meta_key === 'rmm_hours' || $meta_key === 'rmm_pos_x' || $meta_key === 'rmm_pos_y' ) {
 						$current = floatval( get_user_meta( $user_id, $meta_key, true ) ?: 0 );
-						if ( $cumulative ) {
+						// Posiciones NUNCA se acumulan (son ubicacion actual, no total)
+						if ( $cumulative && $meta_key !== 'rmm_pos_x' && $meta_key !== 'rmm_pos_y' ) {
 							update_user_meta( $user_id, $meta_key, round( $current + floatval( $value ), 4 ) );
 						} else {
 							update_user_meta( $user_id, $meta_key, round( floatval( $value ), 4 ) );
