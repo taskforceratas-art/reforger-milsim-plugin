@@ -272,10 +272,15 @@ class RMM_DAGR_Handler {
 
 						new L.TileLayer(tilesUrl, { maxZoom: 5, minZoom: 0, tileSize: 256 }).addTo(map);
 
-			// Conversion de coordenadas de juego a LatLng
-			function gameToLatLng(x, y) {
-				return L.latLng([y + edgeOffset, x + edgeOffset]);
-			}
+			// Conversion de coordenadas de juego a LatLng (CRS Simple: 12800 game = 256px zoom 0)
+						var gameScale = 256 / 12800; // 0.02 — un pixel en zoom 0 cubre 50 unidades de juego
+						function gameToLatLng(x, y) {
+							// En CRS Simple, lat=y, lng=x. Escalar de juego a pixeles zoom 0
+							return L.latLng(y * gameScale, x * gameScale);
+						}
+
+						// Centrar en el medio del mapa
+						map.setView(gameToLatLng(6400, 6400), 2);
 
 			// Marcadores de jugadores
 			var playerMarkers = {};
