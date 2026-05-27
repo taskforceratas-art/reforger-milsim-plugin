@@ -22,8 +22,8 @@ class RMM_DAGR_Handler {
 		if ( $exists !== $table ) {
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 			RMM_DB_Handler::create_tables();
-			$this->insert_default_maps();
 		}
+		$this->insert_default_maps();
 	}
 
 	private function insert_default_maps() {
@@ -32,20 +32,19 @@ class RMM_DAGR_Handler {
 		$defaults = array(
 			array(
 				'map_name' => 'everon', 'display_name' => 'Everon',
-				'tiles_path' => '', 'scale_factor' => 0.08, 'edge_offset' => 50,
+				'tiles_path' => 'https://reforger.recoil.org/everon-d012/LODS/{z}/{x}/{y}/tile.jpg',
+				'scale_factor' => 0.08, 'edge_offset' => 50,
 				'min_x' => 0, 'min_y' => 0, 'max_x' => 12800, 'max_y' => 12800, 'max_zoom' => 5,
 			),
 			array(
 				'map_name' => 'arland', 'display_name' => 'Arland',
-				'tiles_path' => '', 'scale_factor' => 0.08, 'edge_offset' => 50,
-				'min_x' => 0, 'min_y' => 0, 'max_x' => 12800, 'max_y' => 12800, 'max_zoom' => 5,
+				'tiles_path' => 'https://reforger.recoil.org/arland/LODS/{z}/{x}/{y}/tile.jpg',
+				'scale_factor' => 0.08, 'edge_offset' => 50,
+				'min_x' => 0, 'min_y' => 0, 'max_x' => 4000, 'max_y' => 4000, 'max_zoom' => 4,
 			),
 		);
 		foreach ( $defaults as $map ) {
-			$exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table WHERE map_name = %s", $map['map_name'] ) );
-			if ( ! $exists ) {
-				$wpdb->insert( $table, $map );
-			}
+			$wpdb->replace( $table, $map );
 		}
 	}
 
