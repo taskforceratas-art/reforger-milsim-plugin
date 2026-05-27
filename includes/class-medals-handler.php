@@ -751,25 +751,58 @@ class RMM_Medals_Handler {
 			/* ── Responsive ── */
 			@media (max-width: 640px) {
 				.rmm-members-grid {
-					grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-					gap: 12px;
+					grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+					gap: 10px;
+				}
+				.rmm-operator-card {
+					min-height: 260px;
 				}
 				.rmm-card-body {
-					padding: 14px 10px 10px;
+					padding: 12px 8px 8px;
 				}
 				.rmm-avatar-img {
-					width: 60px !important;
-					height: 60px !important;
+					width: 55px !important;
+					height: 55px !important;
 				}
 				.rmm-card-name {
-					font-size: 0.8rem;
+					font-size: 0.75rem;
+				}
+				.rmm-card-rank {
+					font-size: 0.6rem;
 				}
 				.rmm-stat-value {
-					font-size: 0.85rem;
+					font-size: 0.8rem;
+				}
+				.rmm-stat-label {
+					font-size: 0.5rem;
 				}
 				.rmm-ribbon {
-					width: 50px;
-					height: 15px;
+					width: 45px;
+					height: 13px;
+				}
+				.rmm-ribbons-more {
+					min-width: 45px;
+					height: 13px;
+					font-size: 0.5rem;
+				}
+				/* Overlay en movil */
+				.rmm-overlay-scroll {
+					padding: 10px;
+				}
+				.rmm-overlay-title {
+					font-size: 0.6rem;
+					margin-bottom: 8px;
+				}
+				.rmm-overlay-grid {
+					grid-template-columns: 1fr;
+					gap: 6px;
+				}
+				.rmm-overlay-val {
+					font-size: 0.7rem;
+				}
+				.rmm-overlay-action span {
+					font-size: 0.6rem;
+					padding: 5px 0;
 				}
 			}
 			
