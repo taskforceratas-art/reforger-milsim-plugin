@@ -54,6 +54,16 @@ class RMM_DAGR_Handler {
 			'callback' => array( $this, 'get_positions' ),
 			'permission_callback' => '__return_true',
 		));
+		register_rest_route( 'clan/v1', '/dagr/markers', array(
+			'methods'  => 'GET',
+			'callback' => array( $this, 'get_markers' ),
+			'permission_callback' => '__return_true',
+		));
+		register_rest_route( 'clan/v1', '/dagr/markers', array(
+			'methods'  => 'POST',
+			'callback' => array( $this, 'receive_markers' ),
+			'permission_callback' => '__return_true',
+		));
 	}
 
 	public function get_positions( $request ) {
@@ -81,6 +91,48 @@ class RMM_DAGR_Handler {
 		}
 
 		return rest_ensure_response( array( 'players' => $players, 'count' => count( $players ) ) );
+	}
+
+	public function get_markers( $request ) {
+		$map = sanitize_text_field( $request->get_param( 'map' ) ?: '' );
+		$key = 'dagr_markers_' . ( $map ?: 'all' );
+		$markers = get_transient( $key );
+		if ( ! is_array( $markers ) ) $markers = array();
+		return rest_ensure_response( array( 'markers' => $markers, 'count' => count( $markers ) ) );
+	}
+
+	public function receive_markers( $request ) {
+		$body = $request->get_body();
+		$data = json_decode( $body, true );
+		if ( ! $data ) {
+			return new WP_REST_Response( array( 'error' => 'JSON invalido' ), 400 );
+		}
+
+		$map = sanitize_text_field( $data['map'] ?? '' );
+		$markers = $data['markers'] ?? array();
+		if ( empty( $markers ) ) {
+			return new WP_REST_Response( array( 'error' => 'No markers provided' ), 400 );
+		}
+
+		// Validar y limpiar cada marker
+		$clean = array();
+		foreach ( $markers as $m ) {
+			$clean[] = array(
+				'id'     => sanitize_text_field( $m['id'] ?? uniqid('m') ),
+				'type'   => sanitize_text_field( $m['type'] ?? 'marker' ),
+				'label'  => sanitize_text_field( $m['label'] ?? '' ),
+				'pos_x'  => floatval( $m['pos_x'] ?? 0 ),
+				'pos_y'  => floatval( $m['pos_y'] ?? 0 ),
+				'color'  => sanitize_text_field( $m['color'] ?? '#d2a850' ),
+				'author' => sanitize_text_field( $m['author'] ?? '' ),
+				'time'   => current_time( 'mysql' ),
+			);
+		}
+
+		$key = 'dagr_markers_' . ( $map ?: 'all' );
+		set_transient( $key, $clean, 3600 ); // 1 hora
+
+		return rest_ensure_response( array( 'success' => true, 'saved' => count( $clean ) ) );
 	}
 
 	public function render_tactical_map( $atts ) {
@@ -271,6 +323,62 @@ class RMM_DAGR_Handler {
 
 			updatePositions();
 			setInterval(updatePositions, 10000);
+
+			// === Marcadores de mapa (objetivos, POIs) ===
+			var mapMarkers = {};
+			var markerColors = {
+				'objective': '#22c55e',
+				'completed': '#d2a850',
+				'danger': '#ef4444',
+				'info': '#58a6ff',
+				'marker': '#a371f7'
+			};
+			var markerIcons = {
+				'objective': '🎯',
+				'completed': '✅',
+				'danger': '⚠️',
+				'info': 'ℹ️',
+				'marker': '📌'
+			};
+
+			function updateMapMarkers() {
+				var url = '<?php echo rest_url( 'clan/v1/dagr/markers' ); ?>?map=<?php echo urlencode( $map_name ); ?>';
+				fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+					if (!data.markers) return;
+					var seen = {};
+
+					data.markers.forEach(function(m) {
+						seen[m.id] = true;
+						var latlng = gameToLatLng(m.pos_x, m.pos_y);
+
+						if (mapMarkers[m.id]) {
+							mapMarkers[m.id].setLatLng(latlng);
+						} else {
+							var emoji = markerIcons[m.type] || '📍';
+							var color = markerColors[m.type] || '#d2a850';
+							var icon = L.divIcon({
+								className: 'dagr-map-marker',
+								html: '<div style="font-size:18px;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.5));">' + emoji + '</div>',
+								iconSize: [24, 24],
+								iconAnchor: [12, 12]
+							});
+							mapMarkers[m.id] = L.marker(latlng, { icon: icon }).addTo(map);
+							var tip = m.label ? (m.label + (m.author ? ' - ' + m.author : '')) : '';
+							if (tip) mapMarkers[m.id].bindTooltip(tip, { direction: 'top', offset: [0, -12] });
+						}
+					});
+
+					for (var id in mapMarkers) {
+						if (!seen[id]) {
+							map.removeLayer(mapMarkers[id]);
+							delete mapMarkers[id];
+						}
+					}
+				});
+			}
+
+			updateMapMarkers();
+			setInterval(updateMapMarkers, 15000);
 		})();
 		</script>
 		<?php
