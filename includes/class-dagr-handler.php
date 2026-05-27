@@ -345,10 +345,10 @@ class RMM_DAGR_Handler {
 						container.appendChild(coordDiv);
 
 						map.on('mousemove', function(e) {
-							var x = (e.latlng.lng - edgeOffset).toFixed(0);
-							var y = (e.latlng.lat - edgeOffset).toFixed(0);
-							coordDiv.textContent = 'X:' + x.padStart(4,'0') + ' Y:' + y.padStart(4,'0');
-						});
+										var x = Math.round((e.latlng.lng - edgeOffset) / 100);
+										var y = Math.round((e.latlng.lat - edgeOffset) / 100);
+										coordDiv.textContent = 'X:' + String(x).padStart(3,'0') + ' Y:' + String(y).padStart(3,'0');
+									});
 
 			function updatePositions() {
 				if ( hasStaticData ) {
