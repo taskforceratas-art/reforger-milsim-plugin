@@ -8,6 +8,7 @@ vendor/
 error_log
 ._*
 EnfusionMapMaker-main/
+tiles/
 
 # Credenciales de despliegue (SFTP + GitHub)
 .credentials

@@ -114,6 +114,18 @@ class RMM_DAGR_Handler {
 			? $map_config->tiles_path
 			: content_url( 'uploads/maps/' . $map_name . '/LODS/{z}/{x}/{y}/tile.jpg' );
 
+		// Si el path es local, ver si existe; si no, usar CDN
+		$local_path = WP_CONTENT_DIR . '/uploads/maps/' . $map_name . '/LODS/0/0/0/tile.jpg';
+		if ( empty( $map_config->tiles_path ) && ! file_exists( $local_path ) ) {
+			$cdn_fallbacks = array(
+				'everon' => 'https://reforger.recoil.org/everon-d012/LODS/{z}/{x}/{y}/tile.jpg',
+				'arland' => 'https://reforger.recoil.org/arland/LODS/{z}/{x}/{y}/tile.jpg',
+			);
+			if ( isset( $cdn_fallbacks[ $map_name ] ) ) {
+				$tiles_url = $cdn_fallbacks[ $map_name ];
+			}
+		}
+
 		$uid = 'dagr-map-' . uniqid();
 
 		wp_enqueue_style( 'leaflet-css', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', array(), '1.9.4' );
