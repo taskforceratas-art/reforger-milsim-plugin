@@ -191,38 +191,14 @@ class RMM_Medals_Handler {
 					</a>
 				<?php endforeach; ?>
 			</div>
-		<?php endif; ?>
-	</div>
+			<?php endif; ?>
+			</div>
+			<?php
+			return ob_get_clean();
+		}
 
-	<style>
-	/* Responsive para el perfil de operador */
-	@media (max-width: 768px) {
-		.rmm-operator-profile .rmm-profile-header {
-			grid-template-columns: 1fr !important;
-			gap: 16px !important;
-			padding: 16px !important;
-		}
-		.rmm-operator-profile .rmm-profile-dossier-stats {
-			grid-template-columns: repeat(3, 1fr) !important;
-			gap: 8px !important;
-		}
-	}
-	@media (max-width: 480px) {
-		.rmm-operator-profile .rmm-profile-dossier-stats {
-			grid-template-columns: repeat(2, 1fr) !important;
-		}
-		.rmm-operator-profile .rmm-profile-avatar-img {
-			width: 100px !important;
-			height: 100px !important;
-		}
-	}
-	</style>
-	<?php
-	return ob_get_clean();
-}
-
-	/**
-	 * Shortcode: Listado de Miembros del Clan [clan_lista_miembros]
+		/**
+		 * Shortcode: Listado de Miembros del Clan [clan_lista_miembros]
 	 */
 	public function render_members_list( $atts ) {
 		global $wpdb;
@@ -1418,6 +1394,31 @@ class RMM_Medals_Handler {
 			</script>
 
 		</div>
+
+		<style>
+		/* Responsive para el perfil de operador */
+		@media (max-width: 768px) {
+			.rmm-operator-profile .rmm-profile-header {
+				grid-template-columns: 1fr !important;
+				gap: 16px !important;
+				padding: 16px !important;
+			}
+			.rmm-operator-profile .rmm-profile-dossier-stats {
+				grid-template-columns: repeat(3, 1fr) !important;
+				gap: 8px !important;
+			}
+		}
+		@media (max-width: 480px) {
+			.rmm-operator-profile .rmm-profile-dossier-stats {
+				grid-template-columns: repeat(2, 1fr) !important;
+			}
+			.rmm-operator-profile .rmm-profile-avatar-img {
+				width: 100px !important;
+				height: 100px !important;
+			}
+		}
+		</style>
+
 		<?php
 		return ob_get_clean();
 		}
