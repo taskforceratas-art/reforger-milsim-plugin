@@ -265,16 +265,19 @@ class RMM_DAGR_Handler {
 				updatePositions();
 			});
 
-			// CRS Simple estandar para tiles de recoil.org
+			// CRS Simple con bounds para tiles LODS
 						var map = L.map(container, {
 							crs: L.CRS.Simple,
-							zoom: 1,
-							center: [0, 0],
+							center: [128, 128],  // Centro del mapa en coordenadas de tile zoom 0
+							zoom: 2,
 							minZoom: 0,
 							maxZoom: 5,
 							zoomControl: true,
 							attributionControl: false
 						});
+
+						// Bounds: 5x5 tiles de 256px a zoom 0 = 1280x1280
+									map.setMaxBounds([[0, 0], [1280, 1280]]);
 
 						// LODS inverso: Leaflet zoom N → LODS level (maxZoom - N)
 									var maxLODS = 5;
