@@ -2,86 +2,98 @@
 
 **Autor:** [=TFR=] Task Force Recon  
 **Fecha:** Mayo 2026  
-**Estado:** En pausa — documentacion y planificacion
+**Estado:** Fase 1 y 2 completadas
 
 ---
 
 ## Objetivo
 
-Mostrar un mapa tactico de Arma Reforger (Everon, Arland, etc.) en la web del clan usando LeafletJS, con posiciones de jugadores en tiempo real enviadas por el addon ORBAT Link.
+Mapa tactico de Arma Reforger en la web con posiciones de jugadores en tiempo real y marcadores de objetivos via ORBAT Link.
 
 ---
 
-## Recursos existentes
+## ✅ Implementado
 
-### Repositorio: EnfusionMapMaker
+### Shortcode `[rmm_tactical_map]`
 
-Herramienta que automatiza:
-1. Captura de screenshots del mapa en el World Editor de Arma Reforger
-2. Procesado en tiles para LeafletJS (distintos niveles de zoom)
-3. Extraccion de coordenadas de objetos del mapa a JSON
+```
+[rmm_tactical_map]                    # Auto-detecta partida activa
+[rmm_tactical_map map="everon"]       # Mapa manual
+[rmm_tactical_map map="everon" height="800px"]
+```
 
-### Archivos clave del repo
+- Handler: `includes/class-dagr-handler.php`
+- Documentado en admin (36 shortcodes)
 
-| Archivo | Funcion |
+### Base de datos
+
+- Tabla: `wp_rmm_dagr_maps`
+- Defaults: Everon (12800x12800) y Arland (4000x4000)
+- Admin: Reforger MILSIM → 🗺️ Mapas DAGR
+
+### LeafletJS
+
+- CRS personalizado, TileLayer Y invertido, zoom reverso (LOD)
+- Tiles locales con fallback a CDN recoil.org
+- 660 tiles de Everon descargados y en servidor
+
+### Toggle Personal / Global
+
+- Botones en el mapa: `👤 Yo` | `🌍 Global`
+- Verde (tu) / Azul (otros)
+- Guardado en localStorage
+
+### Marcadores
+
+- Iconos CSS: rombo, circulo, triangulo, cuadrado
+- Tipos: objective, completed, danger, info, marker
+- REST: GET/POST `/wp-json/clan/v1/dagr/markers`
+- Procesado automatico desde el payload de telemetria
+
+### Posiciones
+
+- REST: `GET /wp-json/clan/v1/dagr/positions?map=everon`
+- Polling cada 10s
+- Campos: pos_x, pos_y, pos_z, heading, map
+
+### Payload completo ORBAT Link
+
+```json
+{
+  "token": "TFR_...",
+  "scenario_name": "TFR DOBRAVKA OKHOTA",
+  "map": "everon",
+  "markers": [
+    { "id": "obj1", "type": "objective", "label": "Capturar base", "pos_x": 5420, "pos_y": 3210 }
+  ],
+  "players": [{
+    "steamid": "76561198...",
+    "kills": 4, "deaths": 1,
+    "pos_x": 5420.5, "pos_y": 3210.8, "pos_z": 15.2, "heading": 180,
+    "...": "..."
+  }]
+}
+```
+
+---
+
+## Archivos
+
+| Archivo | Rol |
 |---|---|
-| `Web/leaflet/` | Libreria LeafletJS |
-| `Web/leafletPlugins/` | Plugins (MarkerCluster, etc.) |
-| `Web/reforger-map.js` | Motor del mapa: CRS personalizado, conversion de coordenadas, tiles |
-| `Web/everon/` | Tiles del mapa de Everon (LOD 0-5) |
-| `Web/arland/` | Tiles del mapa de Arland (LOD 0-5) |
+| `includes/class-dagr-handler.php` | Shortcode, REST, admin |
+| `includes/class-db-handler.php` | Tabla wp_rmm_dagr_maps |
+| `includes/class-telemetry-handler.php` | Procesa posiciones y marcadores |
+| `tiles/everon-d012/LODS/` | Tiles Everon (.gitignored) |
+| `download-tiles.sh` | Descarga tiles desde CDN |
+| `EnfusionMapMaker-main/` | Referencia (.gitignored) |
 
 ---
 
-## Como funciona reforger-map.js
+## Pendiente
 
-- CRS personalizado: 1 unidad de juego = 1/12.501 pixeles
-- `gameCoordsToLatLng([x, y])` -> posicion en el mapa Leaflet (con offset de 50)
-- `addMapMarkers(map, [[x1,y1], [x2,y2], ...])` -> pinta marcadores
-- TileLayer con Y invertido y zoom reverso (basado en LOD)
-
----
-
-## Plan de implementacion
-
-### Fase 1 — Shortcode basico `[rmm_tactical_map]`
-- Copiar `leaflet/` y `reforger-map.js` a `assets/` del plugin
-- Subir tiles de mapa a `wp-content/uploads/maps/{mapname}/`
-- Shortcode con parametros: `map="everon"`, `zoom="3"`, `height="600px"`
-
-### Fase 2 — Endpoint REST para posiciones
-- Ruta POST `/wp-json/clan/v1/map/positions`
-- Recibir array de jugadores con coordenadas
-- Almacenar en transient de 30s
-
-### Fase 3 — Actualizacion en tiempo real
-- JS hace polling cada 5s al endpoint GET
-- Marcadores con icono de faccion, nombre al hover, rotacion segun heading
-
----
-
-## Pendiente del addon ORBAT Link
-
-Campos nuevos necesarios en el payload de telemetria:
-
-| Campo | Tipo | Descripcion |
-|---|---|---|
-| `pos_x` | float | Coordenada X en el mundo |
-| `pos_y` | float | Coordenada Y en el mundo |
-| `pos_z` | float | Altura (opcional) |
-| `heading` | float | Direccion de la mira en grados |
-| `map` | string | Nombre del mapa: "everon", "arland" |
-
----
-
-## Tareas pendientes
-
-- [ ] Descargar tiles de Everon/Arland del repo
-- [ ] Subir tiles a `wp-content/uploads/maps/`
-- [ ] Copiar `leaflet/` y `reforger-map.js` al plugin
-- [ ] Crear `class-tactical-map-handler.php`
-- [ ] Implementar shortcode `[rmm_tactical_map]`
-- [ ] Endpoint REST `clan/v1/map/positions`
-- [ ] Polling JS para actualizacion de posiciones
-- [ ] Coordinar con el dev del addon los nuevos campos
-- [ ] Documentar en el manual de shortcodes
+- [ ] Capas de POIs (suministros, vehiculos)
+- [ ] Rotacion de iconos por heading
+- [ ] Tiles de Arland y Kolguyev
+- [ ] Control de visibilidad de posiciones
+- [ ] Marcadores persistentes (no solo transient)
