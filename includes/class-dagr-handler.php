@@ -12,6 +12,7 @@ class RMM_DAGR_Handler {
 		add_shortcode( 'rmm_tactical_map', array( $this, 'render_tactical_map' ) );
 		add_action( 'init', array( $this, 'ensure_table' ) );
 		add_action( 'rest_api_init', array( $this, 'register_rest_endpoints' ) );
+		add_action( 'admin_menu', array( $this, 'register_admin_page' ) );
 	}
 
 	public function ensure_table() {
@@ -21,6 +22,30 @@ class RMM_DAGR_Handler {
 		if ( $exists !== $table ) {
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 			RMM_DB_Handler::create_tables();
+			$this->insert_default_maps();
+		}
+	}
+
+	private function insert_default_maps() {
+		global $wpdb;
+		$table = $wpdb->prefix . 'rmm_dagr_maps';
+		$defaults = array(
+			array(
+				'map_name' => 'everon', 'display_name' => 'Everon',
+				'tiles_path' => '', 'scale_factor' => 0.08, 'edge_offset' => 50,
+				'min_x' => 0, 'min_y' => 0, 'max_x' => 12800, 'max_y' => 12800, 'max_zoom' => 5,
+			),
+			array(
+				'map_name' => 'arland', 'display_name' => 'Arland',
+				'tiles_path' => '', 'scale_factor' => 0.08, 'edge_offset' => 50,
+				'min_x' => 0, 'min_y' => 0, 'max_x' => 12800, 'max_y' => 12800, 'max_zoom' => 5,
+			),
+		);
+		foreach ( $defaults as $map ) {
+			$exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table WHERE map_name = %s", $map['map_name'] ) );
+			if ( ! $exists ) {
+				$wpdb->insert( $table, $map );
+			}
 		}
 	}
 
@@ -87,8 +112,8 @@ class RMM_DAGR_Handler {
 		}
 
 		$tiles_url = ! empty( $map_config->tiles_path )
-			? $map_config->tiles_path . '/{z}/{x}/{y}.png'
-			: content_url( 'uploads/maps/' . $map_name . '/{z}/{x}/{y}.png' );
+			? $map_config->tiles_path
+			: content_url( 'uploads/maps/' . $map_name . '/LODS/{z}/{x}/{y}/tile.jpg' );
 
 		$uid = 'dagr-map-' . uniqid();
 
@@ -200,5 +225,74 @@ class RMM_DAGR_Handler {
 		</script>
 		<?php
 		return ob_get_clean();
+	}
+
+	public function register_admin_page() {
+		add_submenu_page(
+			'rmm-dashboard',
+			__( 'Mapas DAGR', 'reforger-milsim' ),
+			__( '🗺️ Mapas DAGR', 'reforger-milsim' ),
+			'manage_options',
+			'rmm-dagr-maps',
+			array( $this, 'render_admin_page' )
+		);
+	}
+
+	public function render_admin_page() {
+		global $wpdb;
+		$table = $wpdb->prefix . 'rmm_dagr_maps';
+
+		if ( isset( $_POST['rmm_save_dagr_map'] ) ) {
+			$wpdb->replace( $table, array(
+				'map_name'      => sanitize_text_field( $_POST['map_name'] ),
+				'display_name'  => sanitize_text_field( $_POST['display_name'] ),
+				'tiles_path'    => esc_url_raw( $_POST['tiles_path'] ),
+				'min_x'         => floatval( $_POST['min_x'] ),
+				'min_y'         => floatval( $_POST['min_y'] ),
+				'max_x'         => floatval( $_POST['max_x'] ),
+				'max_y'         => floatval( $_POST['max_y'] ),
+				'scale_factor'  => floatval( $_POST['scale_factor'] ),
+				'edge_offset'   => intval( $_POST['edge_offset'] ),
+				'max_zoom'      => intval( $_POST['max_zoom'] ),
+				'enabled'       => isset( $_POST['enabled'] ) ? 1 : 0,
+			) );
+			echo '<div class="notice notice-success"><p>Mapa guardado.</p></div>';
+		}
+
+		$maps = $wpdb->get_results( "SELECT * FROM $table ORDER BY display_name" );
+		?>
+		<div class="wrap">
+			<h1>🗺️ Mapas DAGR</h1>
+			<p>Configura los mapas disponibles para el sistema DAGR. Los tiles deben estar en <code>wp-content/uploads/maps/{map_name}/LODS/{z}/{x}/{y}/tile.jpg</code></p>
+
+			<table class="widefat" style="margin-bottom:20px;">
+				<thead><tr><th>Mapa</th><th>Tiles</th><th>Bounds</th><th>Zoom</th><th>Activo</th></tr></thead>
+				<tbody>
+				<?php foreach ( $maps as $m ) : ?>
+					<tr>
+						<td><strong><?php echo esc_html( $m->display_name ); ?></strong><br><code><?php echo esc_html( $m->map_name ); ?></code></td>
+						<td style="font-size:0.8rem;"><?php echo $m->tiles_path ? esc_html( $m->tiles_path ) : '<em>por defecto</em>'; ?></td>
+						<td style="font-size:0.8rem;">X: <?php echo $m->min_x; ?>-<?php echo $m->max_x; ?><br>Y: <?php echo $m->min_y; ?>-<?php echo $m->max_y; ?></td>
+						<td><?php echo intval( $m->max_zoom ); ?></td>
+						<td><?php echo $m->enabled ? '✅' : '❌'; ?></td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+
+			<h2>Insertar/Editar Mapa</h2>
+			<form method="post">
+				<table class="form-table">
+					<tr><th>Nombre clave</th><td><input name="map_name" required placeholder="everon"></td></tr>
+					<tr><th>Nombre visible</th><td><input name="display_name" placeholder="Everon"></td></tr>
+					<tr><th>Ruta tiles (opcional)</th><td><input name="tiles_path" style="width:100%" placeholder="Dejar vacio para ruta por defecto"></td></tr>
+					<tr><th>Bounds</th><td>X min: <input name="min_x" type="number" value="0" style="width:80px"> max: <input name="max_x" type="number" value="12800" style="width:80px"> Y min: <input name="min_y" type="number" value="0" style="width:80px"> max: <input name="max_y" type="number" value="12800" style="width:80px"></td></tr>
+					<tr><th>Scale / Offset / Zoom</th><td>Scale: <input name="scale_factor" type="number" step="0.001" value="0.08" style="width:80px"> Offset: <input name="edge_offset" type="number" value="50" style="width:80px"> Max zoom: <input name="max_zoom" type="number" value="5" style="width:80px"></td></tr>
+					<tr><th>Activo</th><td><input type="checkbox" name="enabled" value="1" checked></td></tr>
+				</table>
+				<button type="submit" name="rmm_save_dagr_map" class="button button-primary">Guardar Mapa</button>
+			</form>
+		</div>
+		<?php
 	}
 }

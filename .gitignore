@@ -7,6 +7,7 @@ node_modules/
 vendor/
 error_log
 ._*
+EnfusionMapMaker-main/
 
 # Credenciales de despliegue (SFTP + GitHub)
 .credentials
