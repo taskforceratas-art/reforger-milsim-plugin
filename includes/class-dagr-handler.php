@@ -259,34 +259,18 @@ class RMM_DAGR_Handler {
 				updatePositions();
 			});
 
-			// CRS personalizado
-			L.CRS.CustomSimple = L.Util.extend({}, L.CRS, {
-				projection: L.Projection.LonLat,
-				transformation: new L.Transformation(scale, 0, -scale, 0),
-				scale: function(z) { return Math.pow(2, z); },
-				zoom: function(s) { return Math.log(s) / Math.LN2; },
-				distance: function(a, b) { return Math.sqrt(Math.pow(b.lng-a.lng,2) + Math.pow(b.lat-a.lat,2)); },
-				infinite: true
-			});
-
-			// TileLayer estandar (sin invertir Y, para tiles CDN de recoil.org)
+			// CRS Simple estandar para tiles de recoil.org
 						var map = L.map(container, {
-							crs: L.CRS.CustomSimple,
-							zoom: 3,
-							center: [(minY+maxY)/2 + edgeOffset, (minX+maxX)/2 + edgeOffset],
+							crs: L.CRS.Simple,
+							zoom: 1,
+							center: [0, 0],
+							minZoom: 0,
+							maxZoom: 5,
 							zoomControl: true,
 							attributionControl: false
 						});
 
-						new L.TileLayer(tilesUrl, {
-				maxZoom: maxZoom,
-				minZoom: 0,
-				zoomReverse: true,
-				bounds: L.latLngBounds(
-					[minY + edgeOffset, minX + edgeOffset],
-					[maxY + edgeOffset, maxX + edgeOffset]
-				)
-			}).addTo(map);
+						new L.TileLayer(tilesUrl, { maxZoom: 5, minZoom: 0, tileSize: 256 }).addTo(map);
 
 			// Conversion de coordenadas de juego a LatLng
 			function gameToLatLng(x, y) {
