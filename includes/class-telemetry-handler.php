@@ -128,8 +128,8 @@ class RMM_Telemetry_Handler {
 			$this->update_player_stats( $user->ID, $player_data );
 			$results['players_updated']++;
 			
-			// Disparar hook para evaluar reglas de condecoraciones
-			do_action( 'rmm_after_telemetry_update', $user->ID, 'telemetry' );
+			// Disparar hook para evaluar reglas de condecoraciones y tracking de sesion
+			do_action( 'rmm_after_telemetry_update', $user->ID, 'telemetry', $player_data );
 			
 			// Si el payload incluye scenario_name, actualizar la sesion activa
 			if ( ! empty( $data['scenario_name'] ) || ! empty( $data['scenario_id'] ) ) {
