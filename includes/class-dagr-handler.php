@@ -152,7 +152,7 @@ class RMM_DAGR_Handler {
 			var maxX = <?php echo floatval( $map_config->max_x ); ?>;
 			var maxY = <?php echo floatval( $map_config->max_y ); ?>;
 			var mode = localStorage.getItem('dagr_mode') || 'personal';
-			var currentUserId = <?php echo get_current_user_id(); ?: 0; ?>;
+			var currentUserId = <?php echo get_current_user_id() ?: 0; ?>;
 			var tilesUrl = '<?php echo esc_url( $tiles_url ); ?>';
 
 			// Toggle buttons
