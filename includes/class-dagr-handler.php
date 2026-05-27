@@ -12,7 +12,7 @@ class RMM_DAGR_Handler {
 		add_shortcode( 'rmm_tactical_map', array( $this, 'render_tactical_map' ) );
 		add_action( 'init', array( $this, 'ensure_table' ) );
 		add_action( 'rest_api_init', array( $this, 'register_rest_endpoints' ) );
-		add_action( 'admin_menu', array( $this, 'register_admin_page' ) );
+		add_action( 'admin_menu', array( $this, 'register_admin_pages' ) );
 	}
 
 	public function ensure_table() {
@@ -137,16 +137,28 @@ class RMM_DAGR_Handler {
 
 	public function render_tactical_map( $atts ) {
 		global $wpdb;
-		$atts = shortcode_atts( array( 'height' => '600px', 'map' => '', 'markers' => '', 'positions' => '' ), $atts );
+		$atts = shortcode_atts( array( 'height' => '600px', 'map' => '', 'markers' => '', 'positions' => '', 'id' => '' ), $atts );
 
-				// Los JSON se pasan en base64 para evitar conflictos con comillas del shortcode parser
-				$markers_raw = ! empty( $atts['markers'] ) ? base64_decode( $atts['markers'] ) : '';
-				$positions_raw = ! empty( $atts['positions'] ) ? base64_decode( $atts['positions'] ) : '';
-				$static_markers = $markers_raw ? json_decode( $markers_raw, true ) : array();
-				$static_positions = $positions_raw ? json_decode( $positions_raw, true ) : array();
-				if ( ! is_array( $static_markers ) ) $static_markers = array();
-				if ( ! is_array( $static_positions ) ) $static_positions = array();
-				$has_static_data = ! empty( $static_markers ) || ! empty( $static_positions );
+		// Si hay ID, cargar preset de BD
+		if ( ! empty( $atts['id'] ) ) {
+			$presets_table = $wpdb->prefix . 'rmm_dagr_presets';
+			$preset = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $presets_table WHERE id = %d", intval( $atts['id'] ) ) );
+			if ( $preset ) {
+				$atts['map']       = $preset->map_name;
+				$atts['markers']   = $preset->markers;
+				$atts['positions'] = $preset->positions;
+				$atts['height']    = $preset->height;
+			}
+		}
+
+		// Los JSON se pasan en base64 para evitar conflictos con comillas del shortcode parser
+		$markers_raw = ! empty( $atts['markers'] ) ? base64_decode( $atts['markers'] ) : '';
+		$positions_raw = ! empty( $atts['positions'] ) ? base64_decode( $atts['positions'] ) : '';
+		$static_markers = $markers_raw ? json_decode( $markers_raw, true ) : array();
+		$static_positions = $positions_raw ? json_decode( $positions_raw, true ) : array();
+		if ( ! is_array( $static_markers ) ) $static_markers = array();
+		if ( ! is_array( $static_positions ) ) $static_positions = array();
+		$has_static_data = ! empty( $static_markers ) || ! empty( $static_positions );
 
 		$map_name = sanitize_text_field( $atts['map'] );
 		$active = null;
@@ -183,30 +195,30 @@ class RMM_DAGR_Handler {
 
 		// Si el path es local, ver si existe; si no, usar CDN
 		$local_path = WP_CONTENT_DIR . '/uploads/maps/' . $map_name . '/LODS/4/4/4/tile.jpg';
-				$local_fallback = content_url( 'uploads/maps/' . $map_name . '/LODS/{z}/{x}/{y}/tile.jpg' );
-				if ( empty( $map_config->tiles_path ) ) {
-					// Si no hay path configurado, usar local si existe, sino CDN
-					if ( file_exists( $local_path ) ) {
-						$tiles_url = $local_fallback;
-					} else {
-			$cdn_fallbacks = array(
-						'everon' => 'https://reforger.recoil.org/map-tiles/everon/{z}/{x}/{y}/tile.jpg',
-						'arland' => 'https://reforger.recoil.org/map-tiles/arland/{z}/{x}/{y}/tile.jpg',
-					);
-			if ( isset( $cdn_fallbacks[ $map_name ] ) ) {
-							$tiles_url = $cdn_fallbacks[ $map_name ];
-						}
-							}
-						}
+		$local_fallback = content_url( 'uploads/maps/' . $map_name . '/LODS/{z}/{x}/{y}/tile.jpg' );
+		if ( empty( $map_config->tiles_path ) ) {
+			// Si no hay path configurado, usar local si existe, sino CDN
+			if ( file_exists( $local_path ) ) {
+				$tiles_url = $local_fallback;
+			} else {
+				$cdn_fallbacks = array(
+					'everon' => 'https://reforger.recoil.org/map-tiles/everon/{z}/{x}/{y}/tile.jpg',
+					'arland' => 'https://reforger.recoil.org/map-tiles/arland/{z}/{x}/{y}/tile.jpg',
+				);
+				if ( isset( $cdn_fallbacks[ $map_name ] ) ) {
+					$tiles_url = $cdn_fallbacks[ $map_name ];
+				}
+			}
+		}
 
 		$uid = 'dagr-map-' . uniqid();
 
 		wp_enqueue_style( 'leaflet-css', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', array(), '1.9.4' );
 
-				ob_start();
-				?>
-				<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-				<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+		ob_start();
+		?>
+		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+		<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 		<div id="<?php echo $uid; ?>" style="width:100%;height:<?php echo esc_attr( $atts['height'] ); ?>;background:#0d1117;border:1px solid #21262d;border-radius:8px;position:relative;">
 			<div class="dagr-mode-toggle" style="position:absolute;top:10px;right:10px;z-index:1000;display:flex;gap:4px;">
 				<button class="dagr-mode-btn active" data-mode="personal" style="background:#1a1d21;color:#849b4c;border:1px solid #849b4c;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:0.7rem;font-weight:700;text-transform:uppercase;font-family:Inter,sans-serif;">👤 Yo</button>
@@ -229,12 +241,12 @@ class RMM_DAGR_Handler {
 			var currentUserId = <?php echo get_current_user_id() ?: 0; ?>;
 			var tilesUrl = '<?php echo esc_js( $tiles_url ); ?>';
 
-						/* DATOS ESTATICOS via shortcode */
-						var staticMarkers = <?php echo json_encode( $static_markers ); ?>;
-						var staticPositions = <?php echo json_encode( $static_positions ); ?>;
-						var hasStaticData = <?php echo $has_static_data ? 'true' : 'false'; ?>;
+			/* DATOS ESTATICOS via shortcode */
+			var staticMarkers = <?php echo json_encode( $static_markers ); ?>;
+			var staticPositions = <?php echo json_encode( $static_positions ); ?>;
+			var hasStaticData = <?php echo $has_static_data ? 'true' : 'false'; ?>;
 
-						// Toggle buttons
+			// Toggle buttons
 			var toggleContainer = container.querySelector('.dagr-mode-toggle');
 			toggleContainer.querySelectorAll('.dagr-mode-btn').forEach(function(btn) {
 				var m = btn.dataset.mode;
@@ -266,73 +278,73 @@ class RMM_DAGR_Handler {
 			});
 
 			// CRS personalizado de EnfusionMapMaker (1/12.5 scale, InvertedY, zoomReverse)
-						L.CRS.CustomSimple = L.Util.extend({}, L.CRS, {
-							projection: L.Projection.LonLat,
-							transformation: new L.Transformation(1/12.5, 0, -1/12.5, 0),
-							scale: function(z) { return Math.pow(2, z); },
-							zoom: function(s) { return Math.log(s) / Math.LN2; },
-							distance: function(a, b) { return Math.sqrt(Math.pow(b.lng-a.lng,2) + Math.pow(b.lat-a.lat,2)); },
-							infinite: true
-						});
+			L.CRS.CustomSimple = L.Util.extend({}, L.CRS, {
+				projection: L.Projection.LonLat,
+				transformation: new L.Transformation(1/12.5, 0, -1/12.5, 0),
+				scale: function(z) { return Math.pow(2, z); },
+				zoom: function(s) { return Math.log(s) / Math.LN2; },
+				distance: function(a, b) { return Math.sqrt(Math.pow(b.lng-a.lng,2) + Math.pow(b.lat-a.lat,2)); },
+				infinite: true
+			});
 
-						// Invertir Y para tiles LODS (igual que el juego)
-						L.TileLayer.InvertedY = L.TileLayer.extend({
-							getTileUrl: function(c) {
-								c.y = -(c.y + 1);
-								return L.TileLayer.prototype.getTileUrl.call(this, c);
-							}
-						});
+			// Invertir Y para tiles LODS (igual que el juego)
+			L.TileLayer.InvertedY = L.TileLayer.extend({
+				getTileUrl: function(c) {
+					c.y = -(c.y + 1);
+					return L.TileLayer.prototype.getTileUrl.call(this, c);
+				}
+			});
 
-						// Bounds del mapa Everon (0,0 a 12800,12800 + offset 50)
-						var bounds = L.latLngBounds(
-							L.latLng([0 + edgeOffset, 0 + edgeOffset]),
-							L.latLng([maxY + edgeOffset, maxX + edgeOffset])
-						);
+			// Bounds del mapa Everon (0,0 a 12800,12800 + offset 50)
+			var bounds = L.latLngBounds(
+				L.latLng([0 + edgeOffset, 0 + edgeOffset]),
+				L.latLng([maxY + edgeOffset, maxX + edgeOffset])
+			);
 
-						var map = L.map(container, {
-							crs: L.CRS.CustomSimple,
-							zoom: 3,
-							center: bounds.getCenter(),
-							maxZoom: maxZoom,
-							minZoom: 0,
-							zoomControl: true,
-							attributionControl: false
-						});
+			var map = L.map(container, {
+				crs: L.CRS.CustomSimple,
+				zoom: 3,
+				center: bounds.getCenter(),
+				maxZoom: maxZoom,
+				minZoom: 0,
+				zoomControl: true,
+				attributionControl: false
+			});
 
-						new L.TileLayer.InvertedY(tilesUrl, {
-							maxZoom: maxZoom,
-							minZoom: 0,
-							zoomReverse: true,
-							bounds: bounds,
-							errorTileUrl: ''
-						}).addTo(map);
+			new L.TileLayer.InvertedY(tilesUrl, {
+				maxZoom: maxZoom,
+				minZoom: 0,
+				zoomReverse: true,
+				bounds: bounds,
+				errorTileUrl: ''
+			}).addTo(map);
 
 			// Conversion de coordenadas de juego (EnfusionMapMaker: +50 offset)
-						function gameToLatLng(x, y) {
-							return L.latLng([y + edgeOffset, x + edgeOffset]);
-						}
+			function gameToLatLng(x, y) {
+				return L.latLng([y + edgeOffset, x + edgeOffset]);
+			}
 
 			// Marcadores de jugadores
 			var playerMarkers = {};
 			var playerIcons = {};
 
 			function updatePositions() {
-							if ( hasStaticData ) {
-												staticPositions.forEach(function(p) {
-													var latlng = gameToLatLng(p.pos_x, p.pos_y);
-													var color = p.color || '#58a6ff';
-													var size = '10px';
-													var icon = L.divIcon({
-														className: 'dagr-player-marker',
-														html: '<div style="width:'+size+';height:'+size+';background:'+color+';border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px ' + color + ';" title="' + (p.name||'') + '"></div>',
-														iconSize: [14,14],
-														iconAnchor: [7,7]
-													});
-													L.marker(latlng, { icon: icon }).addTo(map).bindTooltip(p.name||'', { direction:'top', offset:[0,-8] });
-												});
-												return;
-											}
-							var url = '<?php echo rest_url( 'clan/v1/dagr/positions' ); ?>?map=<?php echo urlencode( $map_name ); ?>';
+				if ( hasStaticData ) {
+					staticPositions.forEach(function(p) {
+						var latlng = gameToLatLng(p.pos_x, p.pos_y);
+						var color = p.color || '#58a6ff';
+						var size = '10px';
+						var icon = L.divIcon({
+							className: 'dagr-player-marker',
+							html: '<div style="width:'+size+';height:'+size+';background:'+color+';border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px ' + color + ';" title="' + (p.name||'') + '"></div>',
+							iconSize: [14,14],
+							iconAnchor: [7,7]
+						});
+						L.marker(latlng, { icon: icon }).addTo(map).bindTooltip(p.name||'', { direction:'top', offset:[0,-8] });
+					});
+					return;
+				}
+				var url = '<?php echo rest_url( 'clan/v1/dagr/positions' ); ?>?map=<?php echo urlencode( $map_name ); ?>';
 				fetch(url).then(function(r) { return r.json(); }).then(function(data) {
 					if (!data.players) return;
 					var seen = {};
@@ -390,16 +402,16 @@ class RMM_DAGR_Handler {
 			};
 
 			function updateMapMarkers() {
-							if ( hasStaticData ) {
-								staticMarkers.forEach(function(m) {
-									var latlng = gameToLatLng(m.pos_x, m.pos_y);
-									var html = markerIcons[m.type] || markerIcons['marker'];
-									var icon = L.divIcon({ className: 'dagr-map-marker', html: html, iconSize: [20,20], iconAnchor: [10,10] });
-									L.marker(latlng, { icon: icon }).addTo(map).bindTooltip(m.label || m.type, { direction:'top', offset:[0,-12] });
-								});
-								return;
-							}
-							var url = '<?php echo rest_url( 'clan/v1/dagr/markers' ); ?>?map=<?php echo urlencode( $map_name ); ?>';
+				if ( hasStaticData ) {
+					staticMarkers.forEach(function(m) {
+						var latlng = gameToLatLng(m.pos_x, m.pos_y);
+						var html = markerIcons[m.type] || markerIcons['marker'];
+						var icon = L.divIcon({ className: 'dagr-map-marker', html: html, iconSize: [20,20], iconAnchor: [10,10] });
+						L.marker(latlng, { icon: icon }).addTo(map).bindTooltip(m.label || m.type, { direction:'top', offset:[0,-12] });
+					});
+					return;
+				}
+				var url = '<?php echo rest_url( 'clan/v1/dagr/markers' ); ?>?map=<?php echo urlencode( $map_name ); ?>';
 				fetch(url).then(function(r) { return r.json(); }).then(function(data) {
 					if (!data.markers) return;
 					var seen = {};
@@ -433,18 +445,18 @@ class RMM_DAGR_Handler {
 				});
 			}
 
-						updateMapMarkers();
-						if ( ! hasStaticData ) {
-							setInterval(updatePositions, 10000);
-							setInterval(updateMapMarkers, 15000);
-						}
-					})();
+			updateMapMarkers();
+			if ( ! hasStaticData ) {
+				setInterval(updatePositions, 10000);
+				setInterval(updateMapMarkers, 15000);
+			}
+		})();
 		</script>
 		<?php
 		return ob_get_clean();
 	}
 
-	public function register_admin_page() {
+	public function register_admin_pages() {
 		add_submenu_page(
 			'rmm-dashboard',
 			__( 'Mapas DAGR', 'reforger-milsim' ),
@@ -457,58 +469,89 @@ class RMM_DAGR_Handler {
 
 	public function render_admin_page() {
 		global $wpdb;
-		$table = $wpdb->prefix . 'rmm_dagr_maps';
+		$table = $wpdb->prefix . 'rmm_dagr_presets';
 
-		if ( isset( $_POST['rmm_save_dagr_map'] ) ) {
-			$wpdb->replace( $table, array(
-				'map_name'      => sanitize_text_field( $_POST['map_name'] ),
-				'display_name'  => sanitize_text_field( $_POST['display_name'] ),
-				'tiles_path'    => esc_url_raw( $_POST['tiles_path'] ),
-				'min_x'         => floatval( $_POST['min_x'] ),
-				'min_y'         => floatval( $_POST['min_y'] ),
-				'max_x'         => floatval( $_POST['max_x'] ),
-				'max_y'         => floatval( $_POST['max_y'] ),
-				'scale_factor'  => floatval( $_POST['scale_factor'] ),
-				'edge_offset'   => intval( $_POST['edge_offset'] ),
-				'max_zoom'      => intval( $_POST['max_zoom'] ),
-				'enabled'       => isset( $_POST['enabled'] ) ? 1 : 0,
-			) );
-			echo '<div class="notice notice-success"><p>Mapa guardado.</p></div>';
+		// Handle save
+		if ( isset( $_POST['rmm_dagr_save'] ) && check_admin_referer( 'rmm_dagr_nonce' ) ) {
+			$id = intval( $_POST['preset_id'] );
+			$data = array(
+				'title'     => sanitize_text_field( $_POST['title'] ),
+				'map_name'  => sanitize_text_field( $_POST['map_name'] ),
+				'markers'   => wp_unslash( $_POST['markers'] ),
+				'positions' => wp_unslash( $_POST['positions'] ),
+				'height'    => sanitize_text_field( $_POST['height'] ),
+			);
+			if ( $id > 0 ) {
+				$wpdb->update( $table, $data, array( 'id' => $id ) );
+			} else {
+				$wpdb->insert( $table, $data );
+				$id = $wpdb->insert_id;
+			}
+			echo '<div class="notice notice-success"><p>Mapa guardado. Shortcode: <code>[rmm_tactical_map id="' . $id . '"]</code></p></div>';
 		}
 
-		$maps = $wpdb->get_results( "SELECT * FROM $table ORDER BY display_name" );
+		// Handle delete
+		if ( isset( $_GET['delete'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'rmm_dagr_delete' ) ) {
+			$wpdb->delete( $table, array( 'id' => intval( $_GET['delete'] ) ) );
+			echo '<div class="notice notice-success"><p>Mapa eliminado.</p></div>';
+		}
+
+		// Load presets
+		$presets = $wpdb->get_results( "SELECT * FROM $table ORDER BY updated_at DESC" );
+
+		// Load for edit
+		$editing = null;
+		if ( isset( $_GET['edit'] ) ) {
+			$editing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE id = %d", intval( $_GET['edit'] ) ) );
+		}
+
 		?>
 		<div class="wrap">
 			<h1>🗺️ Mapas DAGR</h1>
-			<p>Configura los mapas disponibles para el sistema DAGR. Los tiles deben estar en <code>wp-content/uploads/maps/{map_name}/LODS/{z}/{x}/{y}/tile.jpg</code></p>
 
-			<table class="widefat" style="margin-bottom:20px;">
-				<thead><tr><th>Mapa</th><th>Tiles</th><th>Bounds</th><th>Zoom</th><th>Activo</th></tr></thead>
-				<tbody>
-				<?php foreach ( $maps as $m ) : ?>
-					<tr>
-						<td><strong><?php echo esc_html( $m->display_name ); ?></strong><br><code><?php echo esc_html( $m->map_name ); ?></code></td>
-						<td style="font-size:0.8rem;"><?php echo $m->tiles_path ? esc_html( $m->tiles_path ) : '<em>por defecto</em>'; ?></td>
-						<td style="font-size:0.8rem;">X: <?php echo $m->min_x; ?>-<?php echo $m->max_x; ?><br>Y: <?php echo $m->min_y; ?>-<?php echo $m->max_y; ?></td>
-						<td><?php echo intval( $m->max_zoom ); ?></td>
-						<td><?php echo $m->enabled ? '✅' : '❌'; ?></td>
-					</tr>
-				<?php endforeach; ?>
-				</tbody>
-			</table>
+			<div class="card" style="max-width:100%; padding:20px; margin-bottom:20px;">
+				<h2><?php echo $editing ? 'Editar' : 'Nuevo'; ?> Mapa</h2>
+				<form method="post">
+					<?php wp_nonce_field( 'rmm_dagr_nonce' ); ?>
+					<input type="hidden" name="preset_id" value="<?php echo $editing ? $editing->id : 0; ?>">
+					<table class="form-table">
+						<tr><th>Título</th><td><input type="text" name="title" value="<?php echo $editing ? esc_attr($editing->title) : ''; ?>" class="regular-text" required></td></tr>
+						<tr><th>Mapa</th><td><select name="map_name"><option value="everon" <?php selected( $editing ? $editing->map_name : 'everon', 'everon' ); ?>>Everon</option><option value="arland" <?php selected( $editing ? $editing->map_name : '', 'arland' ); ?>>Arland</option></select></td></tr>
+						<tr><th>Marcadores (JSON)</th><td><textarea name="markers" class="large-text" rows="6"><?php echo $editing ? esc_textarea($editing->markers) : '[{"id":"obj1","type":"objective","label":"Base","pos_x":5000,"pos_y":3000}]'; ?></textarea><p class="description">Array JSON. Tipos: objective, completed, danger, info, marker. Campos: id, type, label, pos_x, pos_y</p></td></tr>
+						<tr><th>Posiciones (JSON)</th><td><textarea name="positions" class="large-text" rows="4"><?php echo $editing ? esc_textarea($editing->positions) : '[]'; ?></textarea><p class="description">Array JSON. Campos: name, pos_x, pos_y, color</p></td></tr>
+						<tr><th>Altura</th><td><input type="text" name="height" value="<?php echo $editing ? esc_attr($editing->height) : '600px'; ?>" class="small-text"></td></tr>
+					</table>
+					<p class="submit">
+						<button type="submit" name="rmm_dagr_save" class="button button-primary">Guardar</button>
+						<?php if ( $editing ) : ?>
+							<a href="?page=rmm-dagr-maps" class="button">Cancelar</a>
+						<?php endif; ?>
+					</p>
+				</form>
+			</div>
 
-			<h2>Insertar/Editar Mapa</h2>
-			<form method="post">
-				<table class="form-table">
-					<tr><th>Nombre clave</th><td><input name="map_name" required placeholder="everon"></td></tr>
-					<tr><th>Nombre visible</th><td><input name="display_name" placeholder="Everon"></td></tr>
-					<tr><th>Ruta tiles (opcional)</th><td><input name="tiles_path" style="width:100%" placeholder="Dejar vacio para ruta por defecto"></td></tr>
-					<tr><th>Bounds</th><td>X min: <input name="min_x" type="number" value="0" style="width:80px"> max: <input name="max_x" type="number" value="12800" style="width:80px"> Y min: <input name="min_y" type="number" value="0" style="width:80px"> max: <input name="max_y" type="number" value="12800" style="width:80px"></td></tr>
-					<tr><th>Scale / Offset / Zoom</th><td>Scale: <input name="scale_factor" type="number" step="0.001" value="0.08" style="width:80px"> Offset: <input name="edge_offset" type="number" value="50" style="width:80px"> Max zoom: <input name="max_zoom" type="number" value="5" style="width:80px"></td></tr>
-					<tr><th>Activo</th><td><input type="checkbox" name="enabled" value="1" checked></td></tr>
+			<div class="card" style="max-width:100%; padding:20px;">
+				<h2>Mapas Guardados</h2>
+				<table class="wp-list-table widefat striped">
+					<thead><tr><th>ID</th><th>Título</th><th>Mapa</th><th>Shortcode</th><th>Acciones</th></tr></thead>
+					<tbody>
+					<?php if ( empty( $presets ) ) : ?>
+						<tr><td colspan="5">No hay mapas guardados.</td></tr>
+					<?php else : foreach ( $presets as $p ) : ?>
+						<tr>
+							<td><?php echo $p->id; ?></td>
+							<td><?php echo esc_html( $p->title ); ?></td>
+							<td><?php echo esc_html( $p->map_name ); ?></td>
+							<td><code>[rmm_tactical_map id="<?php echo $p->id; ?>"]</code> <button class="button button-small" onclick="navigator.clipboard.writeText('[rmm_tactical_map id=&quot;<?php echo $p->id; ?>&quot;]')">📋 Copiar</button></td>
+							<td>
+								<a href="?page=rmm-dagr-maps&edit=<?php echo $p->id; ?>" class="button button-small">Editar</a>
+								<a href="?page=rmm-dagr-maps&delete=<?php echo $p->id; ?>&_wpnonce=<?php echo wp_create_nonce('rmm_dagr_delete'); ?>" class="button button-small" onclick="return confirm('¿Eliminar?')">Eliminar</a>
+							</td>
+						</tr>
+					<?php endforeach; endif; ?>
+					</tbody>
 				</table>
-				<button type="submit" name="rmm_save_dagr_map" class="button button-primary">Guardar Mapa</button>
-			</form>
+			</div>
 		</div>
 		<?php
 	}

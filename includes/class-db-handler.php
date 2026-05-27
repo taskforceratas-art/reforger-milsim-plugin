@@ -81,7 +81,21 @@ class RMM_DB_Handler {
 			KEY raid_id (raid_id)
 		) $charset_collate;";
 
-		// Table 5: wp_rmm_medal_rules
+		// Table 5: wp_rmm_dagr_presets
+		$table_dagr_presets = $wpdb->prefix . 'rmm_dagr_presets';
+		$sql_dagr_presets = "CREATE TABLE $table_dagr_presets (
+			id bigint(20) NOT NULL AUTO_INCREMENT,
+			title varchar(200) NOT NULL,
+			map_name varchar(50) NOT NULL DEFAULT 'everon',
+			markers longtext DEFAULT '' NOT NULL,
+			positions longtext DEFAULT '' NOT NULL,
+			height varchar(10) DEFAULT '600px' NOT NULL,
+			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+			PRIMARY KEY (id)
+		) $charset_collate;";
+
+		// Table 6: wp_rmm_medal_rules
 		$table_medal_rules = $wpdb->prefix . 'rmm_medal_rules';
 		$sql5 = "CREATE TABLE $table_medal_rules (
 			id bigint(20) NOT NULL AUTO_INCREMENT,
@@ -145,5 +159,6 @@ class RMM_DB_Handler {
 		dbDelta( $sql5 );
 		dbDelta( $sql6 );
 		dbDelta( $sql7 );
+		dbDelta( $sql_dagr_presets );
 	}
 }
