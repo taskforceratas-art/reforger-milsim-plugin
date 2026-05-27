@@ -143,20 +143,27 @@ class RMM_DAGR_Handler {
 		$atts = shortcode_atts( array( 'height' => '600px', 'map' => '', 'markers' => '', 'positions' => '', 'id' => '' ), $atts );
 
 		// Si hay ID, cargar preset de BD
-		if ( ! empty( $atts['id'] ) ) {
-			$presets_table = $wpdb->prefix . 'rmm_dagr_presets';
-			$preset = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $presets_table WHERE id = %d", intval( $atts['id'] ) ) );
-			if ( $preset ) {
-				$atts['map']       = $preset->map_name;
-				$atts['markers']   = $preset->markers;
-				$atts['positions'] = $preset->positions;
-				$atts['height']    = $preset->height;
-			}
-		}
+				$from_preset = false;
+				if ( ! empty( $atts['id'] ) ) {
+					$presets_table = $wpdb->prefix . 'rmm_dagr_presets';
+					$preset = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $presets_table WHERE id = %d", intval( $atts['id'] ) ) );
+					if ( $preset ) {
+						$atts['map']       = $preset->map_name;
+						$atts['markers']   = $preset->markers;
+						$atts['positions'] = $preset->positions;
+						$atts['height']    = $preset->height;
+						$from_preset = true;
+					}
+				}
 
-		// Los JSON se pasan en base64 para evitar conflictos con comillas del shortcode parser
-		$markers_raw = ! empty( $atts['markers'] ) ? base64_decode( $atts['markers'] ) : '';
-		$positions_raw = ! empty( $atts['positions'] ) ? base64_decode( $atts['positions'] ) : '';
+				// Parsear markers/positions (BD = JSON plano, shortcode attr = base64)
+				if ( $from_preset ) {
+					$markers_raw = ! empty( $atts['markers'] ) ? $atts['markers'] : '';
+					$positions_raw = ! empty( $atts['positions'] ) ? $atts['positions'] : '';
+				} else {
+					$markers_raw = ! empty( $atts['markers'] ) ? base64_decode( $atts['markers'] ) : '';
+					$positions_raw = ! empty( $atts['positions'] ) ? base64_decode( $atts['positions'] ) : '';
+				}
 		$static_markers = $markers_raw ? json_decode( $markers_raw, true ) : array();
 		$static_positions = $positions_raw ? json_decode( $positions_raw, true ) : array();
 		if ( ! is_array( $static_markers ) ) $static_markers = array();
