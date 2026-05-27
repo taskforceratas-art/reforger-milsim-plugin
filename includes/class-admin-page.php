@@ -159,6 +159,12 @@ class RMM_Admin_Page {
 				'params'      => '—',
 			),
 			array(
+				'shortcode'   => '[rmm_tactical_map]',
+				'description' => 'Mapa tactico DAGR con posiciones de jugadores en tiempo real y marcadores de objetivos. Detecta automaticamente la partida activa o permite especificar el mapa.',
+				'context'     => 'Global (cualquier pagina)',
+				'params'      => 'map="everon|arland" height="600px"',
+			),
+			array(
 				'shortcode'   => '[clan_lista_miembros]',
 				'description' => 'Muestra una cuadrícula táctica de miembros con su avatar, nombre, pasador y overlay táctico de estadísticas al pasar el ratón. Al hacer clic, lleva al expediente detallado.',
 				'context'     => 'Global (cualquier página)',
