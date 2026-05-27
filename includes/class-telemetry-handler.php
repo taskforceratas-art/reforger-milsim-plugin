@@ -143,6 +143,26 @@ class RMM_Telemetry_Handler {
 					if ( ! empty( $update ) ) $wpdb->update( $sess_table, $update, array( 'id' => $active->id ) );
 				}
 			}
+
+			// Procesar marcadores DAGR si vienen en el payload
+			if ( ! empty( $data['markers'] ) && is_array( $data['markers'] ) ) {
+				$map = sanitize_text_field( $data['map'] ?? ( $data['scenario_name'] ?? '' ) );
+				$key = 'dagr_markers_' . ( $map ?: 'all' );
+				$clean = array();
+				foreach ( $data['markers'] as $m ) {
+					$clean[] = array(
+						'id'     => sanitize_text_field( $m['id'] ?? uniqid('m') ),
+						'type'   => sanitize_text_field( $m['type'] ?? 'marker' ),
+						'label'  => sanitize_text_field( $m['label'] ?? '' ),
+						'pos_x'  => floatval( $m['pos_x'] ?? 0 ),
+						'pos_y'  => floatval( $m['pos_y'] ?? 0 ),
+						'color'  => sanitize_text_field( $m['color'] ?? '#d2a850' ),
+						'author' => sanitize_text_field( $m['author'] ?? '' ),
+						'time'   => current_time( 'mysql' ),
+					);
+				}
+				set_transient( $key, $clean, 3600 );
+			}
 		}
 
 		return new WP_REST_Response( array(

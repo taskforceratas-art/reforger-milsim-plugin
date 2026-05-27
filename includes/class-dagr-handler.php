@@ -137,19 +137,24 @@ class RMM_DAGR_Handler {
 
 	public function render_tactical_map( $atts ) {
 		global $wpdb;
-		$atts = shortcode_atts( array( 'height' => '600px', 'mode' => 'global' ), $atts );
+		$atts = shortcode_atts( array( 'height' => '600px', 'map' => '' ), $atts );
 
-		// Buscar sesion activa
-		$sessions = $wpdb->prefix . 'rmm_match_sessions';
-		$active = $wpdb->get_row( "SELECT * FROM $sessions WHERE ended_at IS NULL ORDER BY started_at DESC LIMIT 1" );
+		$map_name = sanitize_text_field( $atts['map'] );
+		$active = null;
 
-		if ( ! $active ) {
-			return '<div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:24px;text-align:center;color:#8b949e;font-family:Inter,sans-serif;">Sin señal GPS: No hay partida activa.</div>';
-		}
+		// Si no se especifica mapa, buscar sesion activa
+		if ( empty( $map_name ) ) {
+			$sessions = $wpdb->prefix . 'rmm_match_sessions';
+			$active = $wpdb->get_row( "SELECT * FROM $sessions WHERE ended_at IS NULL ORDER BY started_at DESC LIMIT 1" );
 
-		$map_name = ! empty( $active->scenario_name ) ? sanitize_title( $active->scenario_name ) : '';
-		if ( ! $map_name && ! empty( $active->scenario_id ) ) {
-			$map_name = sanitize_title( basename( $active->scenario_id ) );
+			if ( ! $active ) {
+				return '<div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:24px;text-align:center;color:#8b949e;font-family:Inter,sans-serif;">Sin señal GPS: No hay partida activa. Usa <code>[rmm_tactical_map map="everon"]</code></div>';
+			}
+
+			$map_name = ! empty( $active->scenario_name ) ? sanitize_title( $active->scenario_name ) : '';
+			if ( ! $map_name && ! empty( $active->scenario_id ) ) {
+				$map_name = sanitize_title( basename( $active->scenario_id ) );
+			}
 		}
 
 		// Buscar mapa en la BD de DAGR
@@ -159,7 +164,8 @@ class RMM_DAGR_Handler {
 		) );
 
 		if ( ! $map_config ) {
-			return '<div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:24px;text-align:center;color:#8b949e;font-family:Inter,sans-serif;">Sin señal GPS: Mapa no reconocido <strong>' . esc_html( $active->scenario_name ?: $map_name ) . '</strong></div>';
+			$display = $active ? ( $active->scenario_name ?: $map_name ) : $map_name;
+			return '<div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:24px;text-align:center;color:#8b949e;font-family:Inter,sans-serif;">Sin señal GPS: Mapa no reconocido <strong>' . esc_html( $display ) . '</strong></div>';
 		}
 
 		$tiles_url = ! empty( $map_config->tiles_path )
@@ -334,11 +340,11 @@ class RMM_DAGR_Handler {
 				'marker': '#a371f7'
 			};
 			var markerIcons = {
-				'objective': '🎯',
-				'completed': '✅',
-				'danger': '⚠️',
-				'info': 'ℹ️',
-				'marker': '📌'
+				'objective': '<div style="width:16px;height:16px;background:#22c55e;border:2px solid #fff;border-radius:3px;transform:rotate(45deg);box-shadow:0 0 8px rgba(34,197,94,0.5);"></div>',
+				'completed': '<div style="width:14px;height:14px;background:#d2a850;border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px rgba(210,168,80,0.5);"></div>',
+				'danger': '<div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:16px solid #ef4444;filter:drop-shadow(0 0 4px rgba(239,68,68,0.5));"></div>',
+				'info': '<div style="width:14px;height:14px;background:#58a6ff;border:2px solid #fff;border-radius:2px;box-shadow:0 0 8px rgba(88,166,255,0.5);"></div>',
+				'marker': '<div style="width:12px;height:12px;background:#a371f7;border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px rgba(163,113,247,0.5);"></div>'
 			};
 
 			function updateMapMarkers() {
@@ -354,13 +360,12 @@ class RMM_DAGR_Handler {
 						if (mapMarkers[m.id]) {
 							mapMarkers[m.id].setLatLng(latlng);
 						} else {
-							var emoji = markerIcons[m.type] || '📍';
-							var color = markerColors[m.type] || '#d2a850';
+							var html = markerIcons[m.type] || markerIcons['marker'];
 							var icon = L.divIcon({
 								className: 'dagr-map-marker',
-								html: '<div style="font-size:18px;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.5));">' + emoji + '</div>',
-								iconSize: [24, 24],
-								iconAnchor: [12, 12]
+								html: html,
+								iconSize: [20, 20],
+								iconAnchor: [10, 10]
 							});
 							mapMarkers[m.id] = L.marker(latlng, { icon: icon }).addTo(map);
 							var tip = m.label ? (m.label + (m.author ? ' - ' + m.author : '')) : '';
