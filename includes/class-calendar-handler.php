@@ -293,6 +293,7 @@ class RMM_Calendar_Handler {
 						} else {
 							title += ' [' + (props.estado || '').toUpperCase() + ']';
 						}
+						title += ' (hora peninsular)';
 						info.el.setAttribute('title', title);
 					}
 				});
