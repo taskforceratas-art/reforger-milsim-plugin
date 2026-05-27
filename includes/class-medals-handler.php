@@ -867,6 +867,13 @@ class RMM_Medals_Handler {
 		$saline       = intval( get_user_meta( $user_id, 'rmm_saline', true ) ?: 0 );
 		$morphine     = intval( get_user_meta( $user_id, 'rmm_morphine', true ) ?: 0 );
 		$epinephrine  = intval( get_user_meta( $user_id, 'rmm_epinephrine', true ) ?: 0 );
+		// Movilidad y vehiculos
+		$dist_walked    = intval( get_user_meta( $user_id, 'rmm_dist_walked', true ) ?: 0 );
+		$dist_vehicle   = intval( get_user_meta( $user_id, 'rmm_dist_vehicle', true ) ?: 0 );
+		$dist_total     = intval( get_user_meta( $user_id, 'rmm_dist_total', true ) ?: 0 );
+		$veh_destroyed  = intval( get_user_meta( $user_id, 'rmm_veh_destroyed', true ) ?: 0 );
+		$veh_air        = intval( get_user_meta( $user_id, 'rmm_veh_air', true ) ?: 0 );
+		$explosives     = intval( get_user_meta( $user_id, 'rmm_explosives', true ) ?: 0 );
 		$steamid_64   = get_user_meta( $user_id, 'steamid_64', true );
 		$bohemia_uid  = get_user_meta( $user_id, 'bohemia_uid', true );
 		$enrol_date   = get_user_meta( $user_id, 'rmm_enrolment_date', true );
@@ -1081,9 +1088,39 @@ class RMM_Medals_Handler {
 							<i class="fa-solid fa-heart-pulse" style="color: #dc2626; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
 							<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Epinefrina', 'reforger-milsim' ); ?></span>
 							<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $epinephrine; ?></strong>
-						</div>
+							</div>
 						
-					</div>
+							<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+								<i class="fa-solid fa-person-walking" style="color: #58a6ff; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+								<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Dist. a pie', 'reforger-milsim' ); ?></span>
+								<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo number_format( $dist_walked / 1000, 1 ); ?>km</strong>
+							</div>
+						
+							<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+								<i class="fa-solid fa-car" style="color: #d2a850; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+								<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Dist. vehiculo', 'reforger-milsim' ); ?></span>
+								<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo number_format( $dist_vehicle / 1000, 1 ); ?>km</strong>
+							</div>
+						
+							<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+								<i class="fa-solid fa-burst" style="color: #f78166; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+								<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Vehiculos destruidos', 'reforger-milsim' ); ?></span>
+								<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $veh_destroyed; ?></strong>
+							</div>
+						
+							<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+								<i class="fa-solid fa-helicopter" style="color: #a371f7; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+								<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Aeronaves derribadas', 'reforger-milsim' ); ?></span>
+								<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $veh_air; ?></strong>
+							</div>
+						
+							<div style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; text-align: center;">
+								<i class="fa-solid fa-bomb" style="color: #dc2626; font-size: 1rem; margin-bottom: 6px; display: block;"></i>
+								<span style="display: block; font-size: 0.55rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.05em; margin-bottom: 4px;"><?php _e( 'Explosivos detonados', 'reforger-milsim' ); ?></span>
+								<strong style="font-size: 1.3rem; color: #fff; font-family: monospace;"><?php echo $explosives; ?></strong>
+							</div>
+						
+						</div>
 				</div>
 
 			</div>

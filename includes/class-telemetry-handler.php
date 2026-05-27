@@ -211,6 +211,16 @@ class RMM_Telemetry_Handler {
 			'rmm_saline'      => array( 'medical_saline_applied', 'medical _saline_applied' ),
 			'rmm_morphine'    => array( 'medical_morphine_applied', 'medical _morphine_applied' ),
 			'rmm_epinephrine' => array( 'medical_epinephrine_applied', 'medical _epinephrine_applied' ),
+			'rmm_dist_walked' => array( 'distance_walked_m' ),
+			'rmm_dist_vehicle'=> array( 'distance_in_vehicle_m' ),
+			'rmm_dist_total'  => array( 'distance_total_m' ),
+			'rmm_veh_destroyed'=> array( 'vehicles_destroyed_total' ),
+			'rmm_veh_light'   => array( 'vehicles_destroyed_light' ),
+			'rmm_veh_heavy'   => array( 'vehicles_destroyed_heavy' ),
+			'rmm_veh_air'     => array( 'vehicles_destroyed_air' ),
+			'rmm_veh_sea'     => array( 'vehicles_destroyed_sea' ),
+			'rmm_veh_static'  => array( 'vehicles_destroyed_static' ),
+			'rmm_explosives'  => array( 'placed_explosives_detonated' ),
 		);
 
 		// Convertir tiempo a horas como float (NO int) para no perder precisión
