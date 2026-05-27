@@ -139,8 +139,13 @@ class RMM_DAGR_Handler {
 		global $wpdb;
 		$atts = shortcode_atts( array( 'height' => '600px', 'map' => '', 'markers' => '', 'positions' => '' ), $atts );
 
-				$static_markers = ! empty( $atts['markers'] ) ? json_decode( stripslashes( $atts['markers'] ), true ) : array();
-				$static_positions = ! empty( $atts['positions'] ) ? json_decode( stripslashes( $atts['positions'] ), true ) : array();
+				// Los JSON se pasan en base64 para evitar conflictos con comillas del shortcode parser
+				$markers_raw = ! empty( $atts['markers'] ) ? base64_decode( $atts['markers'] ) : '';
+				$positions_raw = ! empty( $atts['positions'] ) ? base64_decode( $atts['positions'] ) : '';
+				$static_markers = $markers_raw ? json_decode( $markers_raw, true ) : array();
+				$static_positions = $positions_raw ? json_decode( $positions_raw, true ) : array();
+				if ( ! is_array( $static_markers ) ) $static_markers = array();
+				if ( ! is_array( $static_positions ) ) $static_positions = array();
 				$has_static_data = ! empty( $static_markers ) || ! empty( $static_positions );
 
 		$map_name = sanitize_text_field( $atts['map'] );
