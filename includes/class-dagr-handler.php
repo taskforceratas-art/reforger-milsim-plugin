@@ -276,7 +276,19 @@ class RMM_DAGR_Handler {
 							attributionControl: false
 						});
 
-						new L.TileLayer(tilesUrl, { maxZoom: 5, minZoom: 0, tileSize: 256, noWrap: true, errorTileUrl: '' }).addTo(map);
+						// LODS inverso: Leaflet zoom N → LODS level (maxZoom - N)
+									var maxLODS = 5;
+									var lodsUrl = tilesUrl; // URL con {z}/{x}/{y}
+
+									// TileLayer custom que invierte el zoom para LODS
+									var LODSTileLayer = L.TileLayer.extend({
+										getTileUrl: function(coords) {
+											coords.z = maxLODS - coords.z; // invertir zoom
+											return L.TileLayer.prototype.getTileUrl.call(this, coords);
+										}
+									});
+
+									new LODSTileLayer(tilesUrl, { maxZoom: 5, minZoom: 0, tileSize: 256, noWrap: true, errorTileUrl: '' }).addTo(map);
 
 			// Conversion de coordenadas de juego a LatLng (CRS Simple: 12800 game = 256px zoom 0)
 						var gameScale = 256 / 12800; // 0.02 — un pixel en zoom 0 cubre 50 unidades de juego
