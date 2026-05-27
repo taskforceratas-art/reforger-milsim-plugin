@@ -183,15 +183,21 @@ class RMM_DAGR_Handler {
 
 		// Si el path es local, ver si existe; si no, usar CDN
 		$local_path = WP_CONTENT_DIR . '/uploads/maps/' . $map_name . '/LODS/0/0/0/tile.jpg';
-		if ( empty( $map_config->tiles_path ) && ! file_exists( $local_path ) ) {
+				$local_fallback = content_url( 'uploads/maps/' . $map_name . '/LODS/{z}/{x}/{y}/tile.jpg' );
+				if ( empty( $map_config->tiles_path ) ) {
+					// Si no hay path configurado, usar local si existe, sino CDN
+					if ( file_exists( $local_path ) ) {
+						$tiles_url = $local_fallback;
+					} else {
 			$cdn_fallbacks = array(
 						'everon' => 'https://reforger.recoil.org/map-tiles/everon/{z}/{x}/{y}/tile.jpg',
 						'arland' => 'https://reforger.recoil.org/map-tiles/arland/{z}/{x}/{y}/tile.jpg',
 					);
 			if ( isset( $cdn_fallbacks[ $map_name ] ) ) {
-				$tiles_url = $cdn_fallbacks[ $map_name ];
-			}
-		}
+							$tiles_url = $cdn_fallbacks[ $map_name ];
+						}
+							}
+						}
 
 		$uid = 'dagr-map-' . uniqid();
 
@@ -270,7 +276,7 @@ class RMM_DAGR_Handler {
 							attributionControl: false
 						});
 
-						new L.TileLayer(tilesUrl, { maxZoom: 5, minZoom: 0, tileSize: 256, tms: true, noWrap: true }).addTo(map);
+						new L.TileLayer(tilesUrl, { maxZoom: 5, minZoom: 0, tileSize: 256, noWrap: true, errorTileUrl: '' }).addTo(map);
 
 			// Conversion de coordenadas de juego a LatLng (CRS Simple: 12800 game = 256px zoom 0)
 						var gameScale = 256 / 12800; // 0.02 — un pixel en zoom 0 cubre 50 unidades de juego
