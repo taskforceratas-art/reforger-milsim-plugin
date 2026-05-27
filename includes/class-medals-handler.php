@@ -191,8 +191,6 @@ class RMM_Medals_Handler {
 					</a>
 				<?php endforeach; ?>
 			</div>
-			<?php endif; ?>
-			</div>
 			<?php
 			return ob_get_clean();
 		}
