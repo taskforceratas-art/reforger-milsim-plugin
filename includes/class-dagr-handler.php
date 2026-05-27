@@ -182,7 +182,7 @@ class RMM_DAGR_Handler {
 			: content_url( 'uploads/maps/' . $map_name . '/LODS/{z}/{x}/{y}/tile.jpg' );
 
 		// Si el path es local, ver si existe; si no, usar CDN
-		$local_path = WP_CONTENT_DIR . '/uploads/maps/' . $map_name . '/LODS/0/0/0/tile.jpg';
+		$local_path = WP_CONTENT_DIR . '/uploads/maps/' . $map_name . '/LODS/4/4/4/tile.jpg';
 				$local_fallback = content_url( 'uploads/maps/' . $map_name . '/LODS/{z}/{x}/{y}/tile.jpg' );
 				if ( empty( $map_config->tiles_path ) ) {
 					// Si no hay path configurado, usar local si existe, sino CDN
