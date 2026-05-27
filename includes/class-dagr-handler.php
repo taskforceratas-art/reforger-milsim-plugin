@@ -32,7 +32,7 @@ class RMM_DAGR_Handler {
 		$defaults = array(
 			array(
 				'map_name' => 'everon', 'display_name' => 'Everon',
-				'tiles_path' => 'https://reforger.recoil.org/everon-d012/LODS/{z}/{x}/{y}/tile.jpg',
+				'tiles_path' => 'https://reforger.recoil.org/map-tiles/everon/{z}/{x}/{y}/tile.jpg',
 				'scale_factor' => 0.08, 'edge_offset' => 50,
 				'min_x' => 0, 'min_y' => 0, 'max_x' => 12800, 'max_y' => 12800, 'max_zoom' => 5,
 			),
@@ -185,9 +185,9 @@ class RMM_DAGR_Handler {
 		$local_path = WP_CONTENT_DIR . '/uploads/maps/' . $map_name . '/LODS/0/0/0/tile.jpg';
 		if ( empty( $map_config->tiles_path ) && ! file_exists( $local_path ) ) {
 			$cdn_fallbacks = array(
-				'everon' => 'https://reforger.recoil.org/everon-d012/LODS/{z}/{x}/{y}/tile.jpg',
-				'arland' => 'https://reforger.recoil.org/arland/LODS/{z}/{x}/{y}/tile.jpg',
-			);
+						'everon' => 'https://reforger.recoil.org/map-tiles/everon/{z}/{x}/{y}/tile.jpg',
+						'arland' => 'https://reforger.recoil.org/map-tiles/arland/{z}/{x}/{y}/tile.jpg',
+					);
 			if ( isset( $cdn_fallbacks[ $map_name ] ) ) {
 				$tiles_url = $cdn_fallbacks[ $map_name ];
 			}
