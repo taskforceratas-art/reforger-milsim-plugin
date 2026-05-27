@@ -895,7 +895,7 @@ class RMM_Admin_Page {
 					<div class="rmm-form-grid">
 						<div class="rmm-form-group">
 							<label for="rmm_orbatlink_base_url">Base URL</label>
-							<input type="url" name="rmm_orbatlink_base_url" value="<?php echo esc_url( get_option( 'rmm_orbatlink_base_url', 'https://tfrpruebas.gure.party' ) ); ?>" class="regular-text">
+							<input type="url" name="rmm_orbatlink_base_url" value="<?php echo esc_url( get_option( 'rmm_orbatlink_base_url', 'https://tfr.gure.party' ) ); ?>" class="regular-text">
 						</div>
 						<div class="rmm-form-group">
 							<label for="rmm_orbatlink_route">Ruta del Endpoint</label>
