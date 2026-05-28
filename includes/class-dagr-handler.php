@@ -32,7 +32,8 @@ class RMM_DAGR_Handler {
 		$defaults = array(
 			array(
 				'map_name' => 'everon', 'display_name' => 'Everon',
-				'tiles_path' => 'https://reforger.recoil.org/map-tiles/everon/{z}/{x}/{y}/tile.jpg',
+				//'tiles_path' => 'https://reforger.recoil.org/map-tiles/everon/{z}/{x}/{y}/tile.jpg',
+				'tiles_path' => '../mapas/mapa_everon/{z}/{x}/{y}/tile.jpg',
 				'scale_factor' => 0.08, 'edge_offset' => 50,
 				'min_x' => 0, 'min_y' => 0, 'max_x' => 12800, 'max_y' => 12800, 'max_zoom' => 5,
 			),
@@ -215,7 +216,8 @@ class RMM_DAGR_Handler {
 				$tiles_url = $local_fallback;
 			} else {
 				$cdn_fallbacks = array(
-					'everon' => 'https://reforger.recoil.org/map-tiles/everon/{z}/{x}/{y}/tile.jpg',
+					//'everon' => 'https://reforger.recoil.org/map-tiles/everon/{z}/{x}/{y}/tile.jpg',
+					'everon' => '../mapas/mapa_everon/{z}/{x}/{y}/tile.jpg',
 					//'arland' => 'https://reforger.recoil.org/map-tiles/arland/{z}/{x}/{y}/tile.jpg',
 					'arland' => '../mapas/mapa_arland/{z}/{x}/{y}/tile.jpg',
 				);
