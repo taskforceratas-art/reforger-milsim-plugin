@@ -38,7 +38,8 @@ class RMM_DAGR_Handler {
 			),
 			array(
 				'map_name' => 'arland', 'display_name' => 'Arland',
-				'tiles_path' => 'https://reforger.recoil.org/arland/LODS/{z}/{x}/{y}/tile.jpg',
+				//'tiles_path' => 'https://reforger.recoil.org/arland/LODS/{z}/{x}/{y}/tile.jpg',
+				'tiles_path' => '../mapas/mapa_arland/{z}/{x}/{y}/tile.jpg',
 				'scale_factor' => 0.08, 'edge_offset' => 50,
 				'min_x' => 0, 'min_y' => 0, 'max_x' => 4000, 'max_y' => 4000, 'max_zoom' => 4,
 			),
