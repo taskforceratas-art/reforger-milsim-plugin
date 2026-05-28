@@ -215,7 +215,7 @@ class RMM_DAGR_Handler {
 				$cdn_fallbacks = array(
 					'everon' => 'https://reforger.recoil.org/map-tiles/everon/{z}/{x}/{y}/tile.jpg',
 					//'arland' => 'https://reforger.recoil.org/map-tiles/arland/{z}/{x}/{y}/tile.jpg',
-					// 'arlan' => '../mapas/mapa_arland/{z}/{x}/{y}/tile.jpg',
+					'arland' => '../mapas/mapa_arland/{z}/{x}/{y}/tile.jpg',
 				);
 				if ( isset( $cdn_fallbacks[ $map_name ] ) ) {
 					$tiles_url = $cdn_fallbacks[ $map_name ];
