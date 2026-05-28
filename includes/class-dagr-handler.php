@@ -202,7 +202,7 @@ class RMM_DAGR_Handler {
 
 		$tiles_url = ! empty( $map_config->tiles_path )
 			? $map_config->tiles_path
-			: /*content_url( 'uploads/maps/' . $map_name . '/LODS/{z}/{x}/{y}/tile.jpg' )*/'../mapas/mapa_' . $map_name . '/{z}/{x}/{y}/tile.jpg;
+			: content_url( /*'uploads/maps/' . $map_name . '/LODS/{z}/{x}/{y}/tile.jpg' )*/'../mapas/mapa_' . $map_name . '/{z}/{x}/{y}/tile.jpg');
 
 		// Si el path es local, ver si existe; si no, usar CDN
 		//$local_path = WP_CONTENT_DIR . '/uploads/maps/' . $map_name . '/LODS/4/4/4/tile.jpg';
