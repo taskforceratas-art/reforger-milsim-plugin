@@ -759,8 +759,8 @@ class RMM_DAGR_Handler {
 								<td><code>[rmm_tactical_map id="<?php echo $p->id; ?>"]</code>
 									<button class="button button-small" onclick="navigator.clipboard.writeText('[rmm_tactical_map id=&quot;<?php echo $p->id; ?>&quot;]')">📋 Copiar</button></td>
 								<td>
-									<a href="?page=rmm-dagr-maps&edit=<?php echo $p->id; ?>" class="button button-small">Editar</a>
-									<a href="?page=rmm-dagr-maps&delete=<?php echo $p->id; ?>&_wpnonce=<?php echo wp_create_nonce('rmm_dagr_delete'); ?>" class="button button-small" onclick="return confirm('¿Eliminar?')">Eliminar</a>
+									<a href="?page=rmm-dagr-maps&tab=presets&edit=<?php echo $p->id; ?>" class="button button-small">Editar</a>
+									<a href="?page=rmm-dagr-maps&tab=presets&delete=<?php echo $p->id; ?>&_wpnonce=<?php echo wp_create_nonce('rmm_dagr_delete'); ?>" class="button button-small" onclick="return confirm('¿Eliminar?')">Eliminar</a>
 								</td>
 							</tr>
 						<?php endforeach; endif; ?>
