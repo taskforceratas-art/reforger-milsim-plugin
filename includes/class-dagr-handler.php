@@ -42,7 +42,14 @@ class RMM_DAGR_Handler {
 				//'tiles_path' => 'https://reforger.recoil.org/arland/LODS/{z}/{x}/{y}/tile.jpg',
 				'tiles_path' => '../mapas/mapa_arland/{z}/{x}/{y}/tile.jpg',
 				'scale_factor' => 0.08, 'edge_offset' => 50,
-				'min_x' => 0, 'min_y' => 0, 'max_x' => 4000, 'max_y' => 4000, 'max_zoom' => 4,
+				'min_x' => 0, 'min_y' => 0, 'max_x' => 4096, 'max_y' => 4096, 'max_zoom' => 4,
+			),
+			array(
+				'map_name' => 'cain', 'display_name' => 'Kolguyev',
+				//'tiles_path' => 'https://reforger.recoil.org/map-tiles/cain/{z}/{x}/{y}/tile.jpg',
+				'tiles_path' => '../mapas/mapa_cain/{z}/{x}/{y}/tile.jpg',
+				'scale_factor' => 0.08, 'edge_offset' => 50,
+				'min_x' => 0, 'min_y' => 0, 'max_x' => 12800, 'max_y' => 12800, 'max_zoom' => 5,
 			),
 		);
 		foreach ( $defaults as $map ) {
@@ -553,7 +560,7 @@ class RMM_DAGR_Handler {
 
 						<table class="form-table">
 							<tr><th>Título</th><td><input type="text" name="title" value="<?php echo $editing ? esc_attr($editing->title) : ''; ?>" class="regular-text" required></td></tr>
-							<tr><th>Mapa</th><td><select name="map_name" id="dagr_map_select"><option value="everon">Everon</option><option value="arland">Arland</option></select></td></tr>
+							<tr><th>Mapa</th><td><select name="map_name" id="dagr_map_select"><option value="everon">Everon</option><option value="arland">Arland</option><option value="cain">Kolguyev</option></select></td></tr>
 							<tr><th>Altura</th><td><input type="text" name="height" value="<?php echo $editing ? esc_attr($editing->height) : '600px'; ?>" class="small-text" placeholder="600px"></td></tr>
 						</table>
 
