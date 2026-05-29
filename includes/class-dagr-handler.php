@@ -791,12 +791,25 @@ class RMM_DAGR_Handler {
 					var markers = [];
 					$('#dagr-markers-table tbody tr').each(function() {
 						var row = $(this);
+						var rawX = $.trim(row.find('.m-x').val()) || '0';
+						var rawY = $.trim(row.find('.m-y').val()) || '0';
+						// Contar dígitos SIN eliminar ceros iniciales — definen la precisión
+						var cleanX = rawX.replace(/[^0-9]/g, '') || '0';
+						var cleanY = rawY.replace(/[^0-9]/g, '') || '0';
+						var precX = cleanX.length;
+						var precY = cleanY.length;
+						// Auto-ajustar a la menor precisión
+						var prec = Math.min(Math.max(1, precX), Math.max(1, precY));
+						// Truncar al nivel menor
+						var adjX = cleanX.substring(0, prec) || '0';
+						var adjY = cleanY.substring(0, prec) || '0';
 						markers.push({
 							id: row.data('id') || ('m'+nextId++),
 							type: row.find('.m-type').val(),
 							label: row.find('.m-label').val(),
-							pos_x: g2m(row.find('.m-x').val()),
-													pos_y: g2m(row.find('.m-y').val())
+							pos_x: g2m(adjX),
+							pos_y: g2m(adjY),
+							precision: prec
 						});
 					});
 					$('#dagr_markers_json').val(JSON.stringify(markers));
@@ -806,11 +819,21 @@ class RMM_DAGR_Handler {
 					var positions = [];
 					$('#dagr-positions-table tbody tr').each(function() {
 						var row = $(this);
+						var rawX = $.trim(row.find('.p-x').val()) || '0';
+						var rawY = $.trim(row.find('.p-y').val()) || '0';
+						var cleanX = rawX.replace(/[^0-9]/g, '') || '0';
+						var cleanY = rawY.replace(/[^0-9]/g, '') || '0';
+						var precX = cleanX.length;
+						var precY = cleanY.length;
+						var prec = Math.min(Math.max(1, precX), Math.max(1, precY));
+						var adjX = cleanX.substring(0, prec) || '0';
+						var adjY = cleanY.substring(0, prec) || '0';
 						positions.push({
 							name: row.find('.p-name').val(),
-							pos_x: g2m(row.find('.p-x').val()),
-													pos_y: g2m(row.find('.p-y').val()),
-							color: row.find('.p-color').val()
+							pos_x: g2m(adjX),
+							pos_y: g2m(adjY),
+							color: row.find('.p-color').val(),
+							precision: prec
 						});
 					});
 					$('#dagr_positions_json').val(JSON.stringify(positions));
@@ -827,19 +850,20 @@ class RMM_DAGR_Handler {
 					return Math.min(n, 12800);
 				}
 
-				function m2g(m) {
-					// Convertir metros a formato grid (igual que padCoord del mapa)
+				function m2g(m, prec) {
+					// prec: 1-5 dígitos de precisión guardada
+					if (!prec) prec = 5; // fallback
 					var v = Math.max(0, Math.min(Math.round(m), 12800));
-					if (v % 1000 === 0) return String(v / 1000);
-					if (v % 100 === 0) return String(v / 100).padStart(3, '0');
-					if (v % 10 === 0) return String(v / 10).padStart(4, '0');
+					if (prec <= 2) return String(Math.round(v / 1000));
+					if (prec === 3) return String(Math.round(v / 100)).padStart(3, '0');
+					if (prec === 4) return String(Math.round(v / 10)).padStart(4, '0');
 					return String(v).padStart(5, '0');
 				}
 
 				function addMarkerRow(data) {
-				data = data || { id: 'm'+(nextId++), type:'info', label:'', pos_x:5000, pos_y:3000 };
-				var px = m2g(data.pos_x || 5000);
-				var py = m2g(data.pos_y || 3000);
+				data = data || { id: 'm'+(nextId++), type:'info', label:'', pos_x:5000, pos_y:3000, precision:5 };
+				var px = m2g(data.pos_x || 5000, data.precision || 5);
+				var py = m2g(data.pos_y || 3000, data.precision || 5);
 				var options = markerTypes.map(function(t) {
 					return '<option value="'+t+'"'+(t===data.type?' selected':'')+'>'+ (markerIcons[t]||'') +' '+t+'</option>';
 				}).join('');
@@ -855,9 +879,9 @@ class RMM_DAGR_Handler {
 				}
 
 				function addPositionRow(data) {
-				data = data || { name:'', pos_x:5000, pos_y:3000, color:'#58a6ff' };
-					var px = m2g(data.pos_x || 5000);
-					var py = m2g(data.pos_y || 3000);
+				data = data || { name:'', pos_x:5000, pos_y:3000, color:'#58a6ff', precision:5 };
+					var px = m2g(data.pos_x || 5000, data.precision || 5);
+					var py = m2g(data.pos_y || 3000, data.precision || 5);
 					var row = '<tr>' +
 						'<td><input type="text" class="p-name" value="'+ (data.name||'') +'" placeholder="Nombre" style="width:100%;"></td>' +
 						'<td><input type="text" class="p-x" value="'+ px +'" placeholder="00000-12800" maxlength="5" style="width:100%;" title="Grid 1-5 dígitos"></td>' +
