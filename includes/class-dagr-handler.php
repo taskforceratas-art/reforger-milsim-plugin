@@ -13,6 +13,7 @@ class RMM_DAGR_Handler {
 		add_action( 'init', array( $this, 'ensure_table' ) );
 		add_action( 'rest_api_init', array( $this, 'register_rest_endpoints' ) );
 		add_action( 'admin_menu', array( $this, 'register_admin_pages' ) );
+		add_action( 'admin_init', array( $this, 'handle_map_actions' ) );
 	}
 
 	public function ensure_table() {
@@ -58,6 +59,57 @@ class RMM_DAGR_Handler {
 						$wpdb->insert( $table, $map );
 					}
 				}
+	}
+
+	/**
+	 * Handle Map CRUD actions from admin
+	 */
+	public function handle_map_actions() {
+		global $wpdb;
+		$table = $wpdb->prefix . 'rmm_dagr_maps';
+
+		// Save / Update map
+		if ( isset( $_POST['rmm_dagr_map_save'] ) && check_admin_referer( 'rmm_dagr_map_nonce' ) ) {
+			$id = intval( $_POST['map_id'] );
+			$data = array(
+				'map_name'     => sanitize_key( $_POST['map_name'] ),
+				'display_name' => sanitize_text_field( $_POST['display_name'] ),
+				'tiles_path'   => sanitize_text_field( wp_unslash( $_POST['tiles_path'] ) ),
+				'scale_factor' => floatval( $_POST['scale_factor'] ),
+				'edge_offset'  => intval( $_POST['edge_offset'] ),
+				'min_x'        => intval( $_POST['min_x'] ),
+				'min_y'        => intval( $_POST['min_y'] ),
+				'max_x'        => intval( $_POST['max_x'] ),
+				'max_y'        => intval( $_POST['max_y'] ),
+				'max_zoom'     => intval( $_POST['max_zoom'] ),
+				'enabled'      => isset( $_POST['enabled'] ) ? 1 : 0,
+			);
+
+			if ( $id > 0 ) {
+				$wpdb->update( $table, $data, array( 'id' => $id ) );
+			} else {
+				$wpdb->insert( $table, $data );
+			}
+			wp_redirect( admin_url( 'admin.php?page=rmm-dagr-maps&tab=maps&saved=1' ) );
+			exit;
+		}
+
+		// Delete map
+		if ( isset( $_GET['map_delete'] ) && check_admin_referer( 'rmm_dagr_map_delete' ) ) {
+			$id = intval( $_GET['map_delete'] );
+			$wpdb->delete( $table, array( 'id' => $id ) );
+			wp_redirect( admin_url( 'admin.php?page=rmm-dagr-maps&tab=maps&deleted=1' ) );
+			exit;
+		}
+
+		// Toggle enabled
+		if ( isset( $_GET['map_toggle'] ) && check_admin_referer( 'rmm_dagr_map_toggle' ) ) {
+			$id = intval( $_GET['map_toggle'] );
+			$current = $wpdb->get_var( $wpdb->prepare( "SELECT enabled FROM $table WHERE id = %d", $id ) );
+			$wpdb->update( $table, array( 'enabled' => $current ? 0 : 1 ), array( 'id' => $id ) );
+			wp_redirect( admin_url( 'admin.php?page=rmm-dagr-maps&tab=maps' ) );
+			exit;
+		}
 	}
 
 	public function register_rest_endpoints() {
@@ -548,10 +600,99 @@ class RMM_DAGR_Handler {
 
 			?>
 			<div class="wrap">
-				<h1>🗺️ Mapas DAGR</h1>
+				<h1>🗺️ DAGR — Gestión</h1>
 
-				<div class="card" style="max-width:100%; padding:20px; margin-bottom:20px;">
-					<h2><?php echo $editing ? 'Editar' : 'Nuevo'; ?> Mapa</h2>
+				<?php
+				$tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'maps';
+				$tabs = array(
+					'maps'    => '🗺️ Mapas',
+					'presets' => '📋 Presets',
+				);
+				echo '<h2 class="nav-tab-wrapper">';
+				foreach ( $tabs as $slug => $label ) {
+					$active = ( $tab === $slug ) ? 'nav-tab-active' : '';
+					echo '<a href="?page=rmm-dagr-maps&tab=' . esc_attr( $slug ) . '" class="nav-tab ' . $active . '">' . esc_html( $label ) . '</a>';
+				}
+				echo '</h2>';
+				?>
+
+				<?php if ( $tab === 'maps' ) : ?>
+					<?php
+					$dagr_maps = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}rmm_dagr_maps ORDER BY map_name ASC" );
+					$map_editing = null;
+					if ( isset( $_GET['map_edit'] ) ) {
+						$map_editing = $wpdb->get_row( $wpdb->prepare(
+							"SELECT * FROM {$wpdb->prefix}rmm_dagr_maps WHERE id = %d",
+							intval( $_GET['map_edit'] )
+						) );
+					}
+					if ( isset( $_GET['saved'] ) ) {
+						echo '<div class="notice notice-success is-dismissible"><p>Mapa guardado.</p></div>';
+					}
+					if ( isset( $_GET['deleted'] ) ) {
+						echo '<div class="notice notice-success is-dismissible"><p>Mapa eliminado.</p></div>';
+					}
+					?>
+
+					<div class="card" style="max-width:100%; padding:20px; margin-bottom:20px;">
+						<h2><?php echo $map_editing ? 'Editar' : 'Nuevo'; ?> Mapa</h2>
+						<form method="post" id="rmm-dagr-map-form">
+							<?php wp_nonce_field( 'rmm_dagr_map_nonce' ); ?>
+							<input type="hidden" name="map_id" value="<?php echo $map_editing ? intval( $map_editing->id ) : 0; ?>">
+
+							<table class="form-table">
+								<tr><th>ID interno</th><td><input type="text" name="map_name" value="<?php echo $map_editing ? esc_attr( $map_editing->map_name ) : ''; ?>" class="regular-text" required placeholder="everon, arland, cain..."></td></tr>
+								<tr><th>Nombre visible</th><td><input type="text" name="display_name" value="<?php echo $map_editing ? esc_attr( $map_editing->display_name ) : ''; ?>" class="regular-text" required placeholder="Everon"></td></tr>
+								<tr><th>Tiles URL</th><td><input type="text" name="tiles_path" value="<?php echo $map_editing ? esc_attr( $map_editing->tiles_path ) : ''; ?>" class="large-text" placeholder="../mapas/mapa_everon/{z}/{x}/{y}/tile.jpg"></td></tr>
+								<tr><th>Scale Factor</th><td><input type="number" step="0.01" name="scale_factor" value="<?php echo $map_editing ? esc_attr( $map_editing->scale_factor ) : '0.08'; ?>" class="small-text"></td></tr>
+								<tr><th>Edge Offset</th><td><input type="number" name="edge_offset" value="<?php echo $map_editing ? esc_attr( $map_editing->edge_offset ) : '50'; ?>" class="small-text"></td></tr>
+								<tr><th>Min X</th><td><input type="number" name="min_x" value="<?php echo $map_editing ? esc_attr( $map_editing->min_x ) : '0'; ?>" class="small-text"></td></tr>
+								<tr><th>Min Y</th><td><input type="number" name="min_y" value="<?php echo $map_editing ? esc_attr( $map_editing->min_y ) : '0'; ?>" class="small-text"></td></tr>
+								<tr><th>Max X</th><td><input type="number" name="max_x" value="<?php echo $map_editing ? esc_attr( $map_editing->max_x ) : ''; ?>" class="small-text" placeholder="12800"></td></tr>
+								<tr><th>Max Y</th><td><input type="number" name="max_y" value="<?php echo $map_editing ? esc_attr( $map_editing->max_y ) : ''; ?>" class="small-text" placeholder="12800"></td></tr>
+								<tr><th>Max Zoom</th><td><input type="number" name="max_zoom" value="<?php echo $map_editing ? esc_attr( $map_editing->max_zoom ) : '5'; ?>" class="small-text"></td></tr>
+								<tr><th>Activo</th><td><label><input type="checkbox" name="enabled" value="1" <?php checked( $map_editing ? $map_editing->enabled : true ); ?>> Visible en el mapa táctico</label></td></tr>
+							</table>
+
+							<p class="submit">
+								<input type="submit" name="rmm_dagr_map_save" class="button button-primary" value="<?php echo $map_editing ? 'Actualizar' : 'Crear'; ?> Mapa">
+								<?php if ( $map_editing ) : ?>
+									<a href="?page=rmm-dagr-maps&tab=maps" class="button">Cancelar</a>
+								<?php endif; ?>
+							</p>
+						</form>
+					</div>
+
+					<div class="card" style="max-width:100%; padding:20px;">
+						<h2>Mapas Configurados</h2>
+						<table class="wp-list-table widefat striped">
+							<thead><tr><th>ID</th><th>Nombre</th><th>Display</th><th>Tiles</th><th>Dimensiones</th><th>Zoom</th><th>Estado</th><th>Acciones</th></tr></thead>
+							<tbody>
+							<?php if ( empty( $dagr_maps ) ) : ?>
+								<tr><td colspan="8">No hay mapas configurados.</td></tr>
+							<?php else : foreach ( $dagr_maps as $m ) : ?>
+								<tr>
+									<td><?php echo intval( $m->id ); ?></td>
+									<td><code><?php echo esc_html( $m->map_name ); ?></code></td>
+									<td><?php echo esc_html( $m->display_name ); ?></td>
+									<td><code style="font-size:11px;"><?php echo esc_html( substr( $m->tiles_path, 0, 40 ) ); ?>...</code></td>
+									<td><?php echo intval( $m->max_x ); ?> × <?php echo intval( $m->max_y ); ?></td>
+									<td><?php echo intval( $m->max_zoom ); ?></td>
+									<td><?php echo $m->enabled ? '<span style="color:green;">✅ Activo</span>' : '<span style="color:red;">⏸ Inactivo</span>'; ?></td>
+									<td>
+										<a href="?page=rmm-dagr-maps&tab=maps&map_edit=<?php echo intval( $m->id ); ?>" class="button button-small">Editar</a>
+										<a href="?page=rmm-dagr-maps&tab=maps&map_toggle=<?php echo intval( $m->id ); ?>&_wpnonce=<?php echo wp_create_nonce( 'rmm_dagr_map_toggle' ); ?>" class="button button-small"><?php echo $m->enabled ? 'Desactivar' : 'Activar'; ?></a>
+										<a href="?page=rmm-dagr-maps&tab=maps&map_delete=<?php echo intval( $m->id ); ?>&_wpnonce=<?php echo wp_create_nonce( 'rmm_dagr_map_delete' ); ?>" class="button button-small" onclick="return confirm('¿Eliminar mapa <?php echo esc_js( $m->display_name ); ?>?')" style="color:#a00;">Eliminar</a>
+									</td>
+								</tr>
+							<?php endforeach; endif; ?>
+							</tbody>
+						</table>
+					</div>
+
+				<?php else : ?>
+
+				<?php /* Presets tab — existing content */ ?>
 					<form method="post" id="rmm-dagr-form">
 						<?php wp_nonce_field( 'rmm_dagr_nonce' ); ?>
 						<input type="hidden" name="preset_id" value="<?php echo $editing ? $editing->id : 0; ?>">
@@ -560,7 +701,17 @@ class RMM_DAGR_Handler {
 
 						<table class="form-table">
 							<tr><th>Título</th><td><input type="text" name="title" value="<?php echo $editing ? esc_attr($editing->title) : ''; ?>" class="regular-text" required></td></tr>
-							<tr><th>Mapa</th><td><select name="map_name" id="dagr_map_select"><option value="everon">Everon</option><option value="arland">Arland</option><option value="cain">Kolguyev</option></select></td></tr>
+							<tr><th>Mapa</th><td><select name="map_name" id="dagr_map_select">
+								<?php
+								$available_maps = $wpdb->get_results( "SELECT map_name, display_name FROM {$wpdb->prefix}rmm_dagr_maps WHERE enabled = 1 ORDER BY display_name ASC" );
+								if ( ! empty( $available_maps ) ) {
+									foreach ( $available_maps as $am ) {
+										echo '<option value="' . esc_attr( $am->map_name ) . '">' . esc_html( $am->display_name ) . '</option>';
+									}
+								} else {
+									echo '<option value="everon">Everon</option>';
+								}
+								?></select></td></tr>
 							<tr><th>Altura</th><td><input type="text" name="height" value="<?php echo $editing ? esc_attr($editing->height) : '600px'; ?>" class="small-text" placeholder="600px"></td></tr>
 						</table>
 
@@ -568,7 +719,7 @@ class RMM_DAGR_Handler {
 						<div style="background:#f9f9f9; border:1px solid #ccd0d4; border-radius:8px; padding:16px; margin:16px 0;">
 							<h3 style="margin-top:0;">🎯 Marcadores</h3>
 							<table class="widefat" id="dagr-markers-table">
-								<thead><tr><th>Tipo</th><th style="width:180px;">Etiqueta</th><th style="width:100px;">X</th><th style="width:100px;">Y</th><th style="width:60px;"></th></tr></thead>
+								<thead><tr><th>Tipo</th><th style="width:180px;">Etiqueta</th><th style="width:100px;">X (m)</th><th style="width:100px;">Y (m)</th><th style="width:60px;"></th></tr></thead>
 								<tbody></tbody>
 							</table>
 							<button type="button" class="button" id="dagr-add-marker" style="margin-top:10px;">+ Añadir Marcador</button>
@@ -578,7 +729,7 @@ class RMM_DAGR_Handler {
 						<div style="background:#f9f9f9; border:1px solid #ccd0d4; border-radius:8px; padding:16px; margin:16px 0;">
 							<h3 style="margin-top:0;">📍 Posiciones</h3>
 							<table class="widefat" id="dagr-positions-table">
-								<thead><tr><th>Nombre</th><th style="width:100px;">X</th><th style="width:100px;">Y</th><th style="width:100px;">Color</th><th style="width:60px;"></th></tr></thead>
+								<thead><tr><th>Nombre</th><th style="width:100px;">X (m)</th><th style="width:100px;">Y (m)</th><th style="width:100px;">Color</th><th style="width:60px;"></th></tr></thead>
 								<tbody></tbody>
 							</table>
 							<button type="button" class="button" id="dagr-add-position" style="margin-top:10px;">+ Añadir Posición</button>
@@ -613,10 +764,12 @@ class RMM_DAGR_Handler {
 								</td>
 							</tr>
 						<?php endforeach; endif; ?>
-						</tbody>
-					</table>
+							</tbody>
+						</table>
+					</div>
+
+					<?php endif; /* end presets tab */ ?>
 				</div>
-			</div>
 
 			<script>
 			jQuery(function($) {
@@ -653,49 +806,48 @@ class RMM_DAGR_Handler {
 					$('#dagr_positions_json').val(JSON.stringify(positions));
 				}
 
-				function g2m(v) { return Math.round(parseFloat(v) * 100) || 0; } // grid (0-128) a metros (0-12800)
+				function g2m(v) { return Math.round(parseFloat(v)) || 0; } // metros directos (0-12800)
 
-							function addMarkerRow(data) {
-					data = data || { id: 'm'+(nextId++), type:'info', label:'', pos_x:64, pos_y:64 };
-					var options = markerTypes.map(function(t) {
-						return '<option value="'+t+'"'+(t===data.type?' selected':'')+'>'+ (markerIcons[t]||'') +' '+t+'</option>';
-					}).join('');
-					var row = '<tr data-id="'+data.id+'">' +
-						'<td><select class="m-type" style="width:100%;">'+options+'</select></td>' +
-						'<td><input type="text" class="m-label" value="'+ (data.label||'') +'" placeholder="Label" style="width:100%;"></td>' +
-						'<td><input type="number" class="m-x" value="'+ (data.pos_x||64) +'" step="0.01" min="0" max="128" style="width:100%;" title="Grid (0-128)"></td>' +
-						'<td><input type="number" class="m-y" value="'+ (data.pos_y||64) +'" step="0.01" min="0" max="128" style="width:100%;" title="Grid (0-128)"></td>' +
-						'<td><button type="button" class="button button-small dagr-remove-row">✕</button></td>' +
-						'</tr>';
+						function addMarkerRow(data) {
+				data = data || { id: 'm'+(nextId++), type:'info', label:'', pos_x:5000, pos_y:3000 };
+				var options = markerTypes.map(function(t) {
+					return '<option value="'+t+'"'+(t===data.type?' selected':'')+'>'+ (markerIcons[t]||'') +' '+t+'</option>';
+				}).join('');
+				var row = '<tr data-id="'+data.id+'">' +
+					'<td><select class="m-type" style="width:100%;">'+options+'</select></td>' +
+					'<td><input type="text" class="m-label" value="'+ (data.label||'') +'" placeholder="Label" style="width:100%;"></td>' +
+					'<td><input type="text" class="m-x" value="'+ String(data.pos_x||5000).padStart(4,'0') +'" placeholder="0000" maxlength="5" style="width:100%;" title="Coordenada X en metros (0-12800)"></td>' +
+					'<td><input type="text" class="m-y" value="'+ String(data.pos_y||3000).padStart(4,'0') +'" placeholder="0000" maxlength="5" style="width:100%;" title="Coordenada Y en metros (0-12800)"></td>' +
+					'<td><button type="button" class="button button-small dagr-remove-row">✕</button></td>' +
+				'</tr>';
 					$('#dagr-markers-table tbody').append(row);
 					updateMarkersJSON();
 				}
 
 				function addPositionRow(data) {
-					data = data || { name:'', pos_x:64, pos_y:64, color:'#58a6ff' };
-					var row = '<tr>' +
-						'<td><input type="text" class="p-name" value="'+ (data.name||'') +'" placeholder="Nombre" style="width:100%;"></td>' +
-						'<td><input type="number" class="p-x" value="'+ (data.pos_x||64) +'" step="0.01" min="0" max="128" style="width:100%;" title="Grid (0-128)"></td>' +
-						'<td><input type="number" class="p-y" value="'+ (data.pos_y||64) +'" step="0.01" min="0" max="128" style="width:100%;" title="Grid (0-128)"></td>' +
-						'<td><input type="color" class="p-color" value="'+ (data.color||'#58a6ff') +'" style="width:50px;"></td>' +
-						'<td><button type="button" class="button button-small dagr-remove-row">✕</button></td>' +
-						'</tr>';
+				data = data || { name:'', pos_x:5000, pos_y:3000, color:'#58a6ff' };
+				var row = '<tr>' +
+					'<td><input type="text" class="p-name" value="'+ (data.name||'') +'" placeholder="Nombre" style="width:100%;"></td>' +
+					'<td><input type="text" class="p-x" value="'+ String(data.pos_x||5000).padStart(4,'0') +'" placeholder="0000" maxlength="5" style="width:100%;" title="Coordenada X en metros (0-12800)"></td>' +
+					'<td><input type="text" class="p-y" value="'+ String(data.pos_y||3000).padStart(4,'0') +'" placeholder="0000" maxlength="5" style="width:100%;" title="Coordenada Y en metros (0-12800)"></td>' +
+					'<td><input type="color" class="p-color" value="'+ (data.color||'#58a6ff') +'" style="width:50px;"></td>' +
+					'<td><button type="button" class="button button-small dagr-remove-row">✕</button></td>' +
+				'</tr>';
 					$('#dagr-positions-table tbody').append(row);
 					updatePositionsJSON();
 				}
 
-				// Init from existing data (convertir metros a grid para el builder)
-							var initMarkers = <?php echo json_encode( $edit_markers ); ?>;
-							var initPositions = <?php echo json_encode( $edit_positions ); ?>;
-							function m2g(m) { return Math.round(m / 100 * 100) / 100; } // meters a grid
-							if ( initMarkers && initMarkers.length ) {
-								initMarkers.forEach(function(m) { m.pos_x = m2g(m.pos_x); m.pos_y = m2g(m.pos_y); addMarkerRow(m); });
-							} else {
-								addMarkerRow();
-							}
-							if ( initPositions && initPositions.length ) {
-								initPositions.forEach(function(p) { p.pos_x = m2g(p.pos_x); p.pos_y = m2g(p.pos_y); addPositionRow(p); });
-							}
+				// Init from existing data (coordenadas ya en metros, sin conversión)
+						var initMarkers = <?php echo json_encode( $edit_markers ); ?>;
+				var initPositions = <?php echo json_encode( $edit_positions ); ?>;
+				if ( initMarkers && initMarkers.length ) {
+					initMarkers.forEach(function(m) { addMarkerRow(m); });
+				} else {
+					addMarkerRow();
+				}
+				if ( initPositions && initPositions.length ) {
+					initPositions.forEach(function(p) { addPositionRow(p); });
+				}
 
 				// Event handlers
 				$('#dagr-add-marker').on('click', function() { addMarkerRow(); });
