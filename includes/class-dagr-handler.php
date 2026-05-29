@@ -604,7 +604,7 @@ class RMM_DAGR_Handler {
 
 			// Parse existing data for builder
 			$edit_markers = $editing ? json_decode( $editing->markers, true ) : array(
-				array( 'id' => 'obj1', 'type' => 'objective', 'label' => 'Base', 'pos_x' => 50, 'pos_y' => 30 )
+				array( 'id' => 'obj1', 'type' => 'objective', 'label' => 'Base', 'pos_x' => 5000, 'pos_y' => 3000, 'precision' => 5 )
 			);
 			$edit_positions = $editing ? json_decode( $editing->positions, true ) : array();
 
@@ -613,7 +613,7 @@ class RMM_DAGR_Handler {
 				<h1>🗺️ DAGR — Gestión</h1>
 
 				<?php
-				$tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'maps';
+				$tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'presets';
 				$tabs = array(
 					'maps'    => '🗺️ Mapas',
 					'presets' => '📋 Presets',
@@ -706,7 +706,7 @@ class RMM_DAGR_Handler {
 					<form method="post" id="rmm-dagr-form">
 						<?php wp_nonce_field( 'rmm_dagr_nonce' ); ?>
 						<input type="hidden" name="preset_id" value="<?php echo $editing ? $editing->id : 0; ?>">
-						<input type="hidden" name="markers" id="dagr_markers_json" value="<?php echo $editing ? esc_attr($editing->markers) : esc_attr('[{"id":"obj1","type":"objective","label":"Base","pos_x":5000,"pos_y":3000}]'); ?>">
+						<input type="hidden" name="markers" id="dagr_markers_json" value="<?php echo $editing ? esc_attr($editing->markers) : esc_attr('[{\"id\":\"obj1\",\"type\":\"objective\",\"label\":\"Base\",\"pos_x\":5000,\"pos_y\":3000,\"precision\":5}]'); ?>">
 						<input type="hidden" name="positions" id="dagr_positions_json" value="<?php echo $editing ? esc_attr($editing->positions) : '[]'; ?>">
 
 						<table class="form-table">
